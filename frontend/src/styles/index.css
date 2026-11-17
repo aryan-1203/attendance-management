@@ -1,0 +1,183 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/*
+ * ProsParity design tokens — the single source of truth for color, type, radius, elevation & motion.
+ * Apple HIG: clarity, depth, generous rhythm · Material 3: tonal surfaces, clear state layers,
+ * expressive motion · Fluent 2: mica/acrylic translucency, crisp density.
+ * All colors are HSL triplets so Tailwind can apply alpha: bg-primary/10.
+ */
+@layer base {
+  :root {
+    --radius: 14px;
+
+    /* neutrals (cool, slightly blue — calm for data) */
+    --background: 220 33% 97.5%;
+    --foreground: 224 40% 12%;
+    --surface: 0 0% 100%;
+    --surface-raised: 0 0% 100%;
+    --surface-sunken: 220 28% 95%;
+    --card: 0 0% 100%;
+    --card-foreground: 224 40% 12%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 224 40% 12%;
+    --muted: 220 24% 94.5%;
+    --muted-foreground: 222 13% 38%;
+    --border: 221 22% 88%;
+    --input: 221 22% 84%;
+
+    /* brand: deep blue primary + warm amber accent */
+    --primary: 226 71% 43%;
+    --primary-foreground: 0 0% 100%;
+    --primary-soft: 226 90% 96%;
+    --secondary: 220 26% 93%;
+    --secondary-foreground: 224 40% 16%;
+    --accent: 32 95% 44%;
+    --accent-foreground: 0 0% 100%;
+    --ring: 226 71% 50%;
+
+    --success: 152 62% 32%;
+    --success-foreground: 0 0% 100%;
+    --warning: 32 95% 40%;
+    --warning-foreground: 0 0% 100%;
+    --destructive: 0 72% 46%;
+    --destructive-foreground: 0 0% 100%;
+
+    /* attendance status semantics (solid + readable foreground on soft tint) */
+    --st-p: 152 58% 36%;   --st-p-fg: 152 70% 22%;
+    --st-a: 0 72% 50%;     --st-a-fg: 0 70% 36%;
+    --st-hd: 35 92% 46%;   --st-hd-fg: 30 90% 30%;
+    --st-l: 262 60% 55%;   --st-l-fg: 262 55% 38%;
+    --st-wo: 220 12% 56%;  --st-wo-fg: 220 15% 34%;
+    --st-h: 188 78% 38%;   --st-h-fg: 190 80% 24%;
+    --st-co: 316 60% 48%;  --st-co-fg: 316 62% 34%;
+    --st-wfh: 204 86% 44%; --st-wfh-fg: 206 85% 30%;
+    --st-od: 168 64% 34%;  --st-od-fg: 170 70% 22%;
+    --st-lop: 346 74% 44%; --st-lop-fg: 346 72% 32%;
+    --st-nj: 220 10% 70%;  --st-nj-fg: 220 10% 42%;
+    --st-ex: 220 10% 62%;  --st-ex-fg: 220 10% 38%;
+
+    /* elevation: layered soft shadows (HIG depth, Fluent crispness) */
+    --elev-1: 0 1px 2px hsl(224 40% 12% / .05), 0 1px 1px hsl(224 40% 12% / .03);
+    --elev-2: 0 1px 2px hsl(224 40% 12% / .05), 0 6px 18px -6px hsl(224 40% 12% / .10);
+    --elev-3: 0 2px 6px hsl(224 40% 12% / .06), 0 24px 48px -16px hsl(224 40% 12% / .22);
+
+    /* acrylic / mica materials */
+    --glass-bg: 0 0% 100% / .72;
+    --glass-border: 220 30% 80% / .45;
+    --mica-tint: 226 80% 60%;
+
+    /* motion */
+    --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+    --ease-emph: cubic-bezier(0.2, 0, 0, 1);
+    --dur-fast: 120ms;
+    --dur-base: 200ms;
+    --dur-slow: 320ms;
+
+    color-scheme: light;
+  }
+
+  .dark {
+    --background: 226 32% 6.5%;
+    --foreground: 220 25% 95%;
+    --surface: 226 26% 10%;
+    --surface-raised: 226 24% 13%;
+    --surface-sunken: 226 30% 8%;
+    --card: 226 26% 10%;
+    --card-foreground: 220 25% 95%;
+    --popover: 226 26% 11.5%;
+    --popover-foreground: 220 25% 95%;
+    --muted: 226 20% 15%;
+    --muted-foreground: 222 14% 68%;
+    --border: 226 18% 19%;
+    --input: 226 18% 24%;
+
+    --primary: 224 92% 68%;
+    --primary-foreground: 226 50% 10%;
+    --primary-soft: 226 50% 18%;
+    --secondary: 226 20% 17%;
+    --secondary-foreground: 220 25% 92%;
+    --accent: 36 95% 58%;
+    --accent-foreground: 30 60% 10%;
+    --ring: 224 92% 68%;
+
+    --success: 152 55% 48%;
+    --success-foreground: 152 60% 8%;
+    --warning: 36 95% 58%;
+    --warning-foreground: 30 60% 10%;
+    --destructive: 0 80% 64%;
+    --destructive-foreground: 0 60% 10%;
+
+    --st-p: 152 55% 50%;   --st-p-fg: 152 60% 72%;
+    --st-a: 0 80% 64%;     --st-a-fg: 0 85% 78%;
+    --st-hd: 38 95% 58%;   --st-hd-fg: 40 95% 72%;
+    --st-l: 262 80% 74%;   --st-l-fg: 262 85% 84%;
+    --st-wo: 220 12% 58%;  --st-wo-fg: 220 14% 74%;
+    --st-h: 188 70% 52%;   --st-h-fg: 188 75% 72%;
+    --st-co: 316 70% 68%;  --st-co-fg: 316 75% 80%;
+    --st-wfh: 204 90% 62%; --st-wfh-fg: 204 90% 78%;
+    --st-od: 168 60% 50%;  --st-od-fg: 168 65% 70%;
+    --st-lop: 346 85% 66%; --st-lop-fg: 346 90% 80%;
+    --st-nj: 220 10% 40%;  --st-nj-fg: 220 10% 60%;
+    --st-ex: 220 10% 44%;  --st-ex-fg: 220 10% 64%;
+
+    --elev-1: 0 1px 2px hsl(0 0% 0% / .4);
+    --elev-2: 0 1px 2px hsl(0 0% 0% / .35), 0 8px 24px -8px hsl(0 0% 0% / .55);
+    --elev-3: 0 2px 8px hsl(0 0% 0% / .4), 0 28px 56px -16px hsl(0 0% 0% / .7);
+
+    --glass-bg: 226 26% 11% / .66;
+    --glass-border: 220 30% 60% / .14;
+    --mica-tint: 226 80% 55%;
+
+    color-scheme: dark;
+  }
+
+  * { @apply border-border; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-feature-settings: "ss01", "cv11";
+    text-rendering: optimizeLegibility;
+  }
+  /* mica: a whisper of brand tint behind everything */
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: -1;
+    background:
+      radial-gradient(1200px 600px at 8% -10%, hsl(var(--mica-tint) / .10), transparent 60%),
+      radial-gradient(900px 500px at 100% 0%, hsl(var(--accent) / .06), transparent 55%);
+  }
+  :focus-visible { @apply outline-none ring-2 ring-ring ring-offset-2 ring-offset-background; }
+  ::selection { background: hsl(var(--primary) / .22); }
+  h1, h2, h3 { letter-spacing: -0.02em; }
+}
+
+@layer utilities {
+  .tnum { font-variant-numeric: tabular-nums; font-feature-settings: "tnum" 1, "ss01"; }
+  .glass {
+    background: hsl(var(--glass-bg));
+    border-color: hsl(var(--glass-border));
+    -webkit-backdrop-filter: saturate(180%) blur(20px);
+    backdrop-filter: saturate(180%) blur(20px);
+  }
+  .surface { @apply bg-card text-card-foreground border shadow-e1; }
+  .scrollbar-thin { scrollbar-width: thin; scrollbar-color: hsl(var(--border)) transparent; }
+  .hatched {
+    background-image: repeating-linear-gradient(135deg, hsl(var(--muted-foreground) / .10) 0 2px, transparent 2px 7px);
+  }
+  .text-balance { text-wrap: balance; }
+  .safe-bottom { padding-bottom: env(safe-area-inset-bottom); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

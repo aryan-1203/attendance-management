@@ -1,0 +1,43 @@
+services:
+  mysql:
+    image: mysql:8.0
+    command: ["--character-set-server=utf8mb4", "--collation-server=utf8mb4_unicode_ci", "--default-time-zone=+00:00"]
+    environment:
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-prosparity}
+      MYSQL_USER: ${MYSQL_USER:-prosparity}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-prosparity}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-rootpass}
+    ports: ["${MYSQL_PORT:-3306}:3306"]
+    volumes: [mysql-data:/var/lib/mysql]
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD:-rootpass}"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+
+  backend:
+    build: ./backend
+    environment:
+      ENVIRONMENT: ${ENVIRONMENT:-development}
+      DATABASE_URL: mysql+pymysql://${MYSQL_USER:-prosparity}:${MYSQL_PASSWORD:-prosparity}@mysql:3306/${MYSQL_DATABASE:-prosparity}?charset=utf8mb4
+      JWT_SECRET: ${JWT_SECRET:-change-me-in-production-please-32chars}
+      ACCESS_TOKEN_MINUTES: ${ACCESS_TOKEN_MINUTES:-60}
+      BUSINESS_TIMEZONE: ${BUSINESS_TIMEZONE:-Asia/Kolkata}
+      CORS_ORIGINS: http://localhost:${WEB_PORT:-8080}
+      FRONTEND_URL: http://localhost:${WEB_PORT:-8080}
+      SEED_DEMO: ${SEED_DEMO:-true}
+      ENABLE_SCHEDULER: "true"
+    depends_on:
+      mysql: { condition: service_healthy }
+    ports: ["${API_PORT:-8000}:8000"]
+    volumes: [backend-storage:/app/storage]
+
+  frontend:
+    build: ./frontend
+    depends_on:
+      backend: { condition: service_healthy }
+    ports: ["${WEB_PORT:-8080}:80"]
+
+volumes:
+  mysql-data:
+  backend-storage:

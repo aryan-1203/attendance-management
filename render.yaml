@@ -1,0 +1,33 @@
+# Render Blueprint — backend API (free web service, Docker).
+# Render dashboard → New → Blueprint → pick this repo. Values marked `sync: false` are asked for on first deploy.
+services:
+  - type: web
+    name: prosparity-api
+    runtime: docker
+    plan: free
+    region: singapore          # closest to India; pick the region nearest your TiDB cluster
+    rootDir: backend
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /api/health
+    autoDeploy: true
+    envVars:
+      - key: ENVIRONMENT
+        value: production
+      - key: DATABASE_URL       # mysql+pymysql://<user>:<password>@<host>:4000/prosparity?charset=utf8mb4
+        sync: false
+      - key: DB_SSL
+        value: "true"
+      - key: JWT_SECRET
+        generateValue: true
+      - key: CORS_ORIGINS       # your Vercel URL, e.g. https://prosparity.vercel.app (no trailing slash)
+        sync: false
+      - key: FRONTEND_URL       # same Vercel URL
+        sync: false
+      - key: BUSINESS_TIMEZONE
+        value: Asia/Kolkata
+      - key: ACCESS_TOKEN_MINUTES
+        value: "60"
+      - key: ENABLE_SCHEDULER
+        value: "true"
+      - key: SEED_DEMO          # "true" only for a throw-away demo; real data is copied with app.copy_db
+        value: "false"
