@@ -6,7 +6,7 @@ import { iso, login, workingDay } from "./helpers";
 test("HR records leave for an employee: preview, save, visible in records and on the grid", async ({ page }) => {
   const day = workingDay(2);
 
-  await login(page, "hr@prosparity.demo");
+  await login(page, "shraddha@prosparity.in");
   await page.goto("/leave");
   await expect(page.getByRole("heading", { name: "Leave management" })).toBeVisible();
   await page.getByRole("button", { name: "Record leave" }).click();

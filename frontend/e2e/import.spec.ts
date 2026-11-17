@@ -15,7 +15,7 @@ test("Excel import wizard: upload, validate (with an error row), import, roll ba
   const csv = ["Emp Code,Date,Status,Note", `AE003,${day},A,imported`, `AE005,${day},HD,imported`,
     `ZZ999,${day},P,unknown employee`].join("\n");
 
-  await login(page, "hr@prosparity.demo");
+  await login(page, "shraddha@prosparity.in");
   await page.goto("/import");
   await page.locator("input[type=file]").setInputFiles({ name: "e2e-attendance.csv", mimeType: "text/csv",
     buffer: Buffer.from(csv) });

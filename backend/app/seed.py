@@ -22,7 +22,8 @@ from app.models import Attendance, Department, Designation, Employee, Holiday, L
 from app.services import cycle_service, leave_service, policy_service, recalc_service, report_service
 from app.utils.timeutil import today
 
-DEMO_PASSWORD = "Demo@1234"
+HR_EMAIL = "shraddha@prosparity.in"
+HR_PASSWORD = "Shraddha@2627"
 ROLES = [("hr_admin", "HR Administrator"), ("manager", "Team manager"), ("employee", "Employee self-service"),
          ("accounts", "Accounts (read-only reports)")]
 DEPTS = [("Engineering", "ENG"), ("Sales", "SAL"), ("Operations", "OPS"), ("Finance", "FIN"),
@@ -140,7 +141,7 @@ def seed(force: bool = False) -> None:
         emps["AE009"].manager_id = emps["AE001"].id
         db.flush()
 
-        pw = hash_password(DEMO_PASSWORD)
+        pw = hash_password(HR_PASSWORD)
 
         def user(email, role, emp_code=None, name=None):
             e = emps.get(emp_code) if emp_code else None
@@ -150,7 +151,7 @@ def seed(force: bool = False) -> None:
             return u
 
         # This version is HR-only: HR marks attendance and records leave for everyone.
-        hr = user("hr@prosparity.demo", "hr_admin", "AE001")  # Shraddha Rajeshirke
+        hr = user(HR_EMAIL, "hr_admin", "AE001")  # Shraddha Rajeshirke
         # Logins for managers / employees / accounts are disabled in this version (roles still exist in the
         # backend). Re-enable these lines when self-service and approvals are rolled out:
         # user("manager@prosparity.demo", "manager", "AE002")
@@ -277,7 +278,7 @@ def seed(force: bool = False) -> None:
             report_service.lock_cycle(db, cyc, hr, acknowledge_warnings=True)
         db.commit()
         print(f"Seeded {len(emps)} employees, {len(rows)} attendance marks, {len(cycles)} cycles.")
-        print(f"HR login: hr@prosparity.demo / {DEMO_PASSWORD} (Shraddha Rajeshirke)")
+        print(f"HR login: {HR_EMAIL} / {HR_PASSWORD} (Shraddha Rajeshirke)")
     finally:
         db.close()
 

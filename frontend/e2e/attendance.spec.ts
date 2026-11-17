@@ -3,7 +3,7 @@ import { login } from "./helpers";
 
 /** Critical flow 1: HR marks today's attendance (mark all present, then an exception via keyboard, then undo). */
 test("HR marks attendance: mark all present, set an exception with the keyboard, undo", async ({ page }) => {
-  await login(page, "hr@prosparity.demo");
+  await login(page, "shraddha@prosparity.in");
   await page.getByRole("link", { name: "Attendance" }).first().click();
   await expect(page.getByRole("heading", { name: "Daily attendance" })).toBeVisible();
   const grid = page.getByRole("grid", { name: /Attendance for/ });
@@ -33,7 +33,7 @@ test("HR marks attendance: mark all present, set an exception with the keyboard,
 });
 
 test("locked cycle is read-only", async ({ page }) => {
-  await login(page, "hr@prosparity.demo");
+  await login(page, "shraddha@prosparity.in");
   await page.goto("/attendance");
   await page.getByRole("combobox", { name: "Salary cycle" }).click();
   await page.getByRole("option", { name: /20 Jul|20 Aug/ }).first().click();

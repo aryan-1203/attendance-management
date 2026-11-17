@@ -88,7 +88,7 @@ One service running 24/7 is ~720 h, inside the 750 free hours.
 
 ## 6. After going live
 
-* **Change the HR password** (Settings → Users & roles, or the profile menu). The seeded/legacy-loaded login is `hr@prosparity.demo` / `Demo@1234` unless you already changed it.
+* **Change the HR password** (Settings → Users & roles, or the profile menu). The seeded/legacy-loaded login is `shraddha@prosparity.in` unless you already changed it.
 * **Email to Accounts:** add SMTP details in **Settings** (e.g. Gmail with an app password, or Brevo's free SMTP).
   Without SMTP the app only "logs" emails to the container disk.
 * **Updates:** `git push` → Render and Vercel both redeploy. New Alembic migrations run automatically on boot.

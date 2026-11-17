@@ -30,11 +30,11 @@ docker compose up --build
 The backend container waits for MySQL, runs `alembic upgrade head`, seeds demo data (`SEED_DEMO=true`) and starts
 the API + scheduler.
 
-### Login (password `Demo@1234`)
+### Login
 
 | Role | Email | Name |
 |---|---|---|
-| HR Admin | `hr@prosparity.demo` | Shraddha Rajeshirke — full access: grid, imports, leave, cycle close, reports, audit, settings |
+| HR Admin | `shraddha@prosparity.in` | Shraddha Rajeshirke — full access: grid, imports, leave, cycle close, reports, audit, settings |
 
 More HR users can be added in **Settings → Users & roles**.
 
@@ -155,7 +155,7 @@ Cycle **20 Oct – 19 Nov 2026**: 31 days, Sundays 25 Oct, 1, 8, 15 Nov.
 ## Loading HR's legacy payable-days sheets
 
 The dev database was loaded from HR's own monthly workbooks ("Payable Days Calculation - <Month> <Year>.xlsx").
-To reload (this **replaces all data**; HR login stays `hr@prosparity.demo` / `Demo@1234`):
+To reload (this **replaces all data**; HR login stays `shraddha@prosparity.in`):
 
 ```bash
 cd backend

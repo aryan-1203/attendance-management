@@ -26,7 +26,7 @@ from app.core.database import SessionLocal
 from app.core.security import hash_password
 from app.importers.payable_sheet import Sheet, SheetRow, parse
 from app.models import Attendance, Employee, Holiday, LeaveLedger, Role, User
-from app.seed import DEMO_PASSWORD, ROLES, ensure_schema, reset
+from app.seed import HR_EMAIL, HR_PASSWORD, ROLES, ensure_schema, reset
 from app.services import audit_service, cycle_service, policy_service, recalc_service, report_service
 from app.services.employee_service import add_months
 from app.utils.timeutil import today
@@ -35,7 +35,6 @@ UNKNOWN_DOJ = date(2025, 1, 1)  # sheets leave DOJ blank for long-serving (confi
 HOLIDAY_NAMES = {"RAKSHA": "Raksha Bandhan", "GANESH": "Ganesh Chaturthi", "GANDHI": "Gandhi Jayanti",
                  "DIWALI": "Diwali", "HOLI": "Holi", "DUSSEHRA": "Dussehra", "INDEPENDENCE": "Independence Day",
                  "REPUBLIC": "Republic Day", "CHRISTMAS": "Christmas"}
-HR_EMAIL = "hr@prosparity.demo"
 HR_NAME = "Shraddha Rajeshirke"
 
 
@@ -117,7 +116,7 @@ def load(sheet_args: list[tuple[date, Path]], do_reset: bool) -> None:
             db.add(roles[name])
         db.flush()
         hr = User(email=HR_EMAIL, full_name=HR_NAME, role_id=roles["hr_admin"].id, employee_id=None,
-                  password_hash=hash_password(DEMO_PASSWORD))
+                  password_hash=hash_password(HR_PASSWORD))
         db.add(hr)
         db.flush()
 
@@ -201,7 +200,7 @@ def load(sheet_args: list[tuple[date, Path]], do_reset: bool) -> None:
               f"{', '.join(by_end[c].label for c, _ in sheets)}.")
         for n in notes:
             print(" -", n)
-        print(f"HR login: {HR_EMAIL} / {DEMO_PASSWORD} ({HR_NAME})")
+        print(f"HR login: {HR_EMAIL} / {HR_PASSWORD} ({HR_NAME})")
     finally:
         db.close()
 

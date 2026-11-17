@@ -13,7 +13,7 @@
   computes no per-day rate, LOP amount, net payable or encashment amount. It produces the **day counts** Accounts
   needs (eligible, payable, LOP, paid leave, comp-off, balances, encashable days). The `monthly_gross` column was
   dropped (migration `0002`), as were the currency / per-day-basis / encashment-rate settings.
-* Product and company name: **ProsParity**. HR admin: **Shraddha Rajeshirke** (`hr@prosparity.demo`).
+* Product and company name: **ProsParity**. HR admin: **Shraddha Rajeshirke** (`shraddha@prosparity.in`).
 
 ## Real data: the legacy "Payable Days Calculation" sheets
 

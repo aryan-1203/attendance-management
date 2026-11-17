@@ -28,7 +28,7 @@ describe("LoginPage", () => {
       JSON.stringify({ error: { code: "invalid_credentials", message: "Incorrect email or password." } }),
       { status: 401, headers: { "Content-Type": "application/json" } }));
     renderLogin();
-    await userEvent.type(screen.getByLabelText("Work email"), "hr@prosparity.demo");
+    await userEvent.type(screen.getByLabelText("Work email"), "shraddha@prosparity.in");
     await userEvent.type(screen.getByLabelText("Password"), "wrong");
     await userEvent.click(screen.getByRole("button", { name: "Sign in" }));
     expect(await screen.findByRole("alert")).toHaveTextContent("Incorrect email or password.");

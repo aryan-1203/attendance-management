@@ -4,7 +4,7 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { motion } from "framer-motion";
-import { ArrowLeft, MailCheck, ShieldCheck } from "lucide-react";
+import { ArrowLeft, MailCheck } from "lucide-react";
 import { toast } from "sonner";
 import { client, errorMessage, unwrap } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
@@ -17,7 +17,6 @@ import { passwordSchema } from "@/components/layout/change-password";
 import { InlineAlert } from "@/components/shared/page";
 import { CycleRing } from "@/components/shared/rings";
 import { STATUS } from "@/lib/status";
-import { cn } from "@/lib/utils";
 
 function AuthLayout({ children, title, subtitle }: { children: React.ReactNode; title: string; subtitle?: string }) {
   React.useEffect(() => { document.title = `${title} · ProsParity`; }, [title]);
@@ -74,13 +73,6 @@ function AuthLayout({ children, title, subtitle }: { children: React.ReactNode; 
 }
 
 const loginSchema = z.object({ email: z.string().email("Enter a valid email"), password: z.string().min(1, "Enter your password") });
-// HR-only version: only HR signs in. Other demo roles are disabled (see backend/app/seed.py).
-const DEMO = [
-  { email: "hr@prosparity.demo", label: "HR Admin · Shraddha Rajeshirke", icon: ShieldCheck },
-  // { email: "manager@prosparity.demo", label: "Manager", icon: Briefcase },
-  // { email: "employee@prosparity.demo", label: "Employee", icon: UserRound },
-  // { email: "accounts@prosparity.demo", label: "Accounts", icon: Calculator },
-];
 
 export function LoginPage() {
   const { login, user, role, expiredReason } = useAuth();
@@ -117,22 +109,6 @@ export function LoginPage() {
         {error && <InlineAlert tone="destructive">{error}</InlineAlert>}
         <Button type="submit" size="lg" loading={form.formState.isSubmitting}>Sign in</Button>
       </form>
-      <div className="mt-8">
-        <p className="mb-2 text-xs font-medium uppercase tracking-wider text-muted-foreground">Demo HR account · password Demo@1234</p>
-        <div className="grid gap-2">
-          {DEMO.map((d) => {
-            const Icon = d.icon;
-            return (
-              <button key={d.email} type="button"
-                onClick={() => { form.setValue("email", d.email); form.setValue("password", "Demo@1234"); void submit(); }}
-                className={cn("flex cursor-pointer items-center gap-2 rounded-lg border bg-surface px-3 py-2 text-left text-sm shadow-e1",
-                  "transition-colors hover:border-primary/40 hover:bg-primary/5")}>
-                <Icon className="size-4 text-primary" aria-hidden />{d.label}
-              </button>
-            );
-          })}
-        </div>
-      </div>
     </AuthLayout>
   );
 }
