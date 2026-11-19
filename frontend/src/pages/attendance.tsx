@@ -1,6 +1,6 @@
 import * as React from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { CalendarRange, CheckCheck, Columns3, Keyboard, Lock, Search, Upload } from "lucide-react";
+import { CalendarRange, CheckCheck, Keyboard, Lock, Search, Upload } from "lucide-react";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
 import { client, unwrap } from "@/lib/api";
@@ -20,7 +20,7 @@ import { EmptyState } from "@/components/shared/empty-state";
 import { StatusLegend } from "@/components/shared/status-badge";
 import { STATUS } from "@/lib/status";
 import { CycleSwitcher } from "@/components/layout/topbar";
-import { AttendanceGrid, type AttendanceGridHandle, LEGEND_CODES } from "@/features/attendance/attendance-grid";
+import { AttendanceGrid, LEGEND_CODES } from "@/features/attendance/attendance-grid";
 import { EmployeeSidePanel } from "@/features/attendance/side-panel";
 import { MarkRangeDialog } from "@/features/attendance/mark-range-dialog";
 import { useGrid, useSaveMarks, type GridFilters } from "@/features/attendance/use-attendance";
@@ -54,7 +54,6 @@ export default function AttendancePage() {
   const [selected, setSelected] = React.useState<GridRow | null>(null);
   const [panelOpen, setPanelOpen] = React.useState(false);
   const [rangeOpen, setRangeOpen] = React.useState(false);
-  const gridRef = React.useRef<AttendanceGridHandle>(null);
   const locked = grid.data?.cycle.status === "locked";
   const editable = can("hr_admin") && !locked;
   const today = isoDate(new Date());
@@ -104,12 +103,11 @@ export default function AttendancePage() {
             <Button variant="outline" onClick={() => setRangeOpen(true)} disabled={!grid.data?.employees.length}>
               <CalendarRange />Mark range
             </Button>
-            {todayInCycle && (<>
-              <Button variant="outline" onClick={() => gridRef.current?.selectToday()}><Columns3 />Select today</Button>
+            {todayInCycle && (
               <Button onClick={() => markAll.mutate()} loading={markAll.isPending} disabled={unmarkedToday === 0}>
                 <CheckCheck />Mark all present{unmarkedToday ? <span className="rounded-full bg-white/20 px-1.5 text-xs tnum">{unmarkedToday}</span> : null}
               </Button>
-            </>)}
+            )}
           </>)}
         </>}
       />
@@ -162,7 +160,7 @@ export default function AttendancePage() {
             <div className="rounded-xl border bg-card"><EmptyState art="search" title="No employees match"
               description="Try clearing the filters or searching for a different name." /></div>
           ) : (
-            <AttendanceGrid ref={gridRef} grid={grid.data} editable={editable} onSave={save}
+            <AttendanceGrid grid={grid.data} editable={editable} onSave={save}
               selectedEmployeeId={selected?.id ?? null}
               onSelectEmployee={selectEmployee}
               onOpenSummary={(r) => {

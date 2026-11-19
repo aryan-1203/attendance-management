@@ -29,14 +29,12 @@ function norm(a: Pos, b: Pos): Range {
   return { r0: Math.min(a.r, b.r), r1: Math.max(a.r, b.r), c0: Math.min(a.c, b.c), c1: Math.max(a.c, b.c) };
 }
 
-export interface AttendanceGridHandle { selectToday: () => void }
-
-export const AttendanceGrid = React.forwardRef<AttendanceGridHandle, {
+export function AttendanceGrid({ grid, editable, onSave, onSelectEmployee, onOpenSummary, selectedEmployeeId }: {
   grid: Grid; editable: boolean; onSave: (changes: Change[]) => void; onSelectEmployee: (row: GridRow) => void;
   /** Open the employee cycle summary (e.g. mobile sheet). Defaults to onSelectEmployee. */
   onOpenSummary?: (row: GridRow) => void;
   selectedEmployeeId: number | null;
-}>(function AttendanceGrid({ grid, editable, onSave, onSelectEmployee, onOpenSummary, selectedEmployeeId }, ref) {
+}) {
   const rows = grid.employees;
   const days = grid.days;
   const todayIdx = days.findIndex((d) => d.is_today);
@@ -65,14 +63,6 @@ export const AttendanceGrid = React.forwardRef<AttendanceGridHandle, {
     if (code && day.is_future && !FUTURE_OK.has(code)) return false;
     return true;
   }, [editable]);
-
-  React.useImperativeHandle(ref, () => ({
-    selectToday: () => {
-      if (todayIdx < 0 || !rows.length) return;
-      setAnchor({ r: 0, c: todayIdx });
-      setFocus({ r: rows.length - 1, c: todayIdx });
-    },
-  }), [todayIdx, rows.length]);
 
   // keep focused cell scrolled into view + DOM-focused (roving tabindex)
   const focusCell = React.useCallback((p: Pos) => {
@@ -317,7 +307,7 @@ export const AttendanceGrid = React.forwardRef<AttendanceGridHandle, {
       </PickerOverlay>
     </div>
   );
-});
+}
 
 const GridRowView = React.memo(function GridRowView({ row, r, top, days, selCols, focusCol, flash, editable,
   canEditCell, onCellClick, onCellFocus, onNameClick, selected }: {
