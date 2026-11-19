@@ -142,6 +142,59 @@ def mark_all_present(db: Session, on: date, user, employee_ids: list[int] | None
     return result
 
 
+def mark_range(db: Session, start: date, end: date, status: str, user,
+               employee_ids: list[int] | None = None, only_unmarked: bool = False) -> dict[str, Any]:
+    """Apply P or A across a date range for all (or selected) employees.
+
+    Skips Sundays/holidays/NJ/EX, future dates, leave-sourced marks, and days already at `status`.
+    When only_unmarked is True, also skips any day that already has a mark.
+    """
+    if status not in ("P", "A"):
+        raise ValidationFailed("Range mark supports only Present (P) or Absent (A)", code="invalid_status")
+    if end < start:
+        raise ValidationFailed("End date must be on or after start date", code="invalid_range")
+    t = today()
+    if start > t:
+        raise ValidationFailed("Cannot mark attendance for a future date range", code="future_date")
+    end = min(end, t)
+    if (end - start).days > 62:
+        raise ValidationFailed("Date range cannot exceed 62 days", code="range_too_long")
+
+    for d in daterange(start, end):
+        cycle_service.assert_open_for(db, d)
+
+    hol = attendance_repo.public_holidays(db, start, end)
+    emps = employee_repo.employed_between(db, start, end)
+    if employee_ids is not None:
+        wanted = set(employee_ids)
+        emps = [e for e in emps if e.id in wanted]
+    if not emps:
+        result = apply_changes(db, [], user, "manual")
+        result["count"] = 0
+        return result
+
+    emp_ids = [e.id for e in emps]
+    existing = {(a.employee_id, a.date): a for a in attendance_repo.for_range(db, start, end, emp_ids)}
+    changes: list[dict[str, Any]] = []
+    for e in emps:
+        for d in daterange(start, end):
+            if auto_code(e, d, hol) is not None:
+                continue
+            row = existing.get((e.id, d))
+            if row:
+                if only_unmarked:
+                    continue
+                if row.source == "leave":
+                    continue
+                if row.status == status:
+                    continue
+            changes.append({"employee_id": e.id, "date": d, "status": status})
+
+    result = apply_changes(db, changes, user, "manual")
+    result["count"] = len(changes)
+    return result
+
+
 SNAPSHOT_FIELDS = ("eligible_days", "present_days", "half_days", "weekly_offs", "holidays", "unmarked_days",
                    "paid_leave_used", "comp_off_used", "lop_days", "payable_days", "opening_usable", "accrued",
                    "closing_usable", "closing_locked")

@@ -1,6 +1,6 @@
 import * as React from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { CheckCheck, Columns3, Keyboard, Lock, Search, Upload } from "lucide-react";
+import { CalendarRange, CheckCheck, Columns3, Keyboard, Lock, Search, Upload } from "lucide-react";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
 import { client, unwrap } from "@/lib/api";
@@ -22,6 +22,7 @@ import { STATUS } from "@/lib/status";
 import { CycleSwitcher } from "@/components/layout/topbar";
 import { AttendanceGrid, type AttendanceGridHandle, LEGEND_CODES } from "@/features/attendance/attendance-grid";
 import { EmployeeSidePanel } from "@/features/attendance/side-panel";
+import { MarkRangeDialog } from "@/features/attendance/mark-range-dialog";
 import { useGrid, useSaveMarks, type GridFilters } from "@/features/attendance/use-attendance";
 
 const ALL = "__all";
@@ -52,6 +53,7 @@ export default function AttendancePage() {
   const { save } = useSaveMarks(cycle?.id, filters);
   const [selected, setSelected] = React.useState<GridRow | null>(null);
   const [panelOpen, setPanelOpen] = React.useState(false);
+  const [rangeOpen, setRangeOpen] = React.useState(false);
   const gridRef = React.useRef<AttendanceGridHandle>(null);
   const locked = grid.data?.cycle.status === "locked";
   const editable = can("hr_admin") && !locked;
@@ -90,7 +92,7 @@ export default function AttendancePage() {
         title="Daily attendance"
         eyebrow={cycle?.label}
         description={locked ? "This cycle is locked — attendance is read-only." :
-          editable ? "Mark everyone present, then tap the exceptions. Changes save automatically." :
+          editable ? "Mark a date range, mark everyone present, then tap the exceptions. Changes save automatically." :
             "Your team's attendance for the selected cycle."}
         actions={<>
           <CycleSwitcher className="sm:hidden" />
@@ -98,11 +100,16 @@ export default function AttendancePage() {
           {can("hr_admin") && (
             <Button variant="outline" asChild><Link to="/import"><Upload />Import</Link></Button>
           )}
-          {editable && todayInCycle && (<>
-            <Button variant="outline" onClick={() => gridRef.current?.selectToday()}><Columns3 />Select today</Button>
-            <Button onClick={() => markAll.mutate()} loading={markAll.isPending} disabled={unmarkedToday === 0}>
-              <CheckCheck />Mark all present{unmarkedToday ? <span className="rounded-full bg-white/20 px-1.5 text-xs tnum">{unmarkedToday}</span> : null}
+          {editable && (<>
+            <Button variant="outline" onClick={() => setRangeOpen(true)} disabled={!grid.data?.employees.length}>
+              <CalendarRange />Mark range
             </Button>
+            {todayInCycle && (<>
+              <Button variant="outline" onClick={() => gridRef.current?.selectToday()}><Columns3 />Select today</Button>
+              <Button onClick={() => markAll.mutate()} loading={markAll.isPending} disabled={unmarkedToday === 0}>
+                <CheckCheck />Mark all present{unmarkedToday ? <span className="rounded-full bg-white/20 px-1.5 text-xs tnum">{unmarkedToday}</span> : null}
+              </Button>
+            </>)}
           </>)}
         </>}
       />
@@ -157,7 +164,11 @@ export default function AttendancePage() {
           ) : (
             <AttendanceGrid ref={gridRef} grid={grid.data} editable={editable} onSave={save}
               selectedEmployeeId={selected?.id ?? null}
-              onSelectEmployee={(r) => { selectEmployee(r); if (window.matchMedia("(max-width: 1279px)").matches) setPanelOpen(true); }} />
+              onSelectEmployee={selectEmployee}
+              onOpenSummary={(r) => {
+                selectEmployee(r);
+                if (window.matchMedia("(max-width: 1279px)").matches) setPanelOpen(true);
+              }} />
           )}
           <StatusLegend codes={LEGEND_CODES} className="mt-3 2xl:hidden" />
         </div>
@@ -174,6 +185,16 @@ export default function AttendancePage() {
           <EmployeeSidePanel row={selected} cycleId={cycle?.id} />
         </DialogContent>
       </Dialog>
+
+      {editable && (
+        <MarkRangeDialog
+          open={rangeOpen}
+          onOpenChange={setRangeOpen}
+          cycle={cycle}
+          filteredEmployees={grid.data?.employees ?? []}
+          onUndo={(previous) => save(previous, { undo: true })}
+        />
+      )}
     </div>
   );
 }
@@ -193,6 +214,7 @@ function ShortcutsButton() {
           <li className="flex justify-between"><span>Open picker</span><Kbd>Enter</Kbd></li>
           <li className="flex justify-between"><span>Clear mark</span><Kbd>Del</Kbd></li>
           <li className="flex justify-between"><span>Select a whole day</span><span className="text-muted-foreground">click the date</span></li>
+          <li className="flex justify-between"><span>Employee summary</span><span className="text-muted-foreground">click the name</span></li>
         </ul>
         <div className="mt-3 grid grid-cols-2 gap-1.5 border-t pt-3 text-sm">
           {keys.map((s) => (

@@ -41,7 +41,7 @@ export function RadialPicker({ current, allowed, onPick, onClose }: {
             transition={{ type: "spring", stiffness: 520, damping: 30, delay: reduce ? 0 : i * 0.015 }}
             whileHover={ok ? { scale: 1.12 } : undefined} whileTap={ok ? { scale: 0.92 } : undefined}
             onClick={() => onPick(code)}
-            className={cn("absolute left-0 top-0 flex size-11 cursor-pointer flex-col items-center justify-center rounded-full text-[10px] font-bold leading-none shadow-e2",
+            className={cn("absolute left-0 top-0 flex size-11 cursor-pointer flex-col items-center justify-center rounded-full text-[10px] font-bold leading-none shadow-e2 touch-manipulation select-none",
               "focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed",
               m.soft, "bg-card", current === code && "ring-2 ring-offset-2 ring-offset-card ring-primary")}>
             <span className={cn("absolute inset-0 rounded-full", m.soft)} aria-hidden />

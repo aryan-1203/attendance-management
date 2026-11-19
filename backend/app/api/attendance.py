@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from app.api.deps import DB, CurrentUser, HROnly, Staff, resolve_employee
 from app.models import Employee, User
 from app.repositories import employee_repo
-from app.schemas.ops import BulkMarkIn, BulkMarkOut, CycleSummaryOut, GridOut, MarkAllIn
+from app.schemas.ops import BulkMarkIn, BulkMarkOut, CycleSummaryOut, GridOut, MarkAllIn, MarkRangeIn
 from app.services import access, attendance_service, cycle_service
 
 router = APIRouter(prefix="/attendance", tags=["attendance"])
@@ -33,6 +33,14 @@ def bulk(body: BulkMarkIn, db: Session = DB, user: User = HROnly):
 @router.post("/mark-all-present", response_model=BulkMarkOut)
 def mark_all_present(body: MarkAllIn, db: Session = DB, user: User = HROnly):
     out = attendance_service.mark_all_present(db, body.date, user, body.employee_ids)
+    db.commit()
+    return out
+
+
+@router.post("/mark-range", response_model=BulkMarkOut)
+def mark_range(body: MarkRangeIn, db: Session = DB, user: User = HROnly):
+    out = attendance_service.mark_range(
+        db, body.start_date, body.end_date, body.status, user, body.employee_ids, body.only_unmarked)
     db.commit()
     return out
 

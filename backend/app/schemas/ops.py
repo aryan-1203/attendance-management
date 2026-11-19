@@ -140,6 +140,14 @@ class MarkAllIn(BaseModel):
     employee_ids: list[int] | None = None
 
 
+class MarkRangeIn(BaseModel):
+    start_date: Date
+    end_date: Date
+    status: str = Field(pattern="^(P|A)$")
+    employee_ids: list[int] | None = None
+    only_unmarked: bool = False
+
+
 class DayDetail(BaseModel):
     date: Date
     status: str

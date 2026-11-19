@@ -16,7 +16,7 @@ export function EmployeeSidePanel({ row, cycleId }: { row: GridRow | null; cycle
   });
   if (!row) {
     return <EmptyState art="people" compact title="Select an employee"
-      description="Click a name or any cell to see balances, LOP so far and projected payable days." />;
+      description="Click a name for cycle summary, or a day cell to mark attendance." />;
   }
   const s = q.data;
   return (

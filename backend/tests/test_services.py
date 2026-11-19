@@ -133,6 +133,38 @@ class TestAttendance:
         out = attendance_service.mark_all_present(world["db"], date(2026, 11, 15), world["users"]["hr"])
         assert out["count"] == 0
 
+    def test_mark_range_present_and_absent(self, world):
+        db, hr, emp = world["db"], world["users"]["hr"], world["perm"]
+        # Tue–Thu 10–12 Nov 2026 (no Sunday in range).
+        out = attendance_service.mark_range(db, date(2026, 11, 10), date(2026, 11, 12), "P", hr)
+        assert out["count"] == 9  # 3 employees × 3 working days
+        again = attendance_service.mark_range(db, date(2026, 11, 10), date(2026, 11, 12), "P", hr)
+        assert again["count"] == 0
+        # Overwrite to absent for one employee only
+        abs_out = attendance_service.mark_range(
+            db, date(2026, 11, 10), date(2026, 11, 12), "A", hr, employee_ids=[emp.id])
+        assert abs_out["count"] == 3
+        marks = {(a.date, a.status) for a in db.scalars(
+            select(Attendance).where(Attendance.employee_id == emp.id,
+                                     Attendance.date >= date(2026, 11, 10),
+                                     Attendance.date <= date(2026, 11, 12)))}
+        assert marks == {(date(2026, 11, d), "A") for d in (10, 11, 12)}
+
+    def test_mark_range_skips_sunday_and_only_unmarked(self, world):
+        db, hr = world["db"], world["users"]["hr"]
+        # Fri 14 – Mon 17 includes Sunday 15
+        filled = attendance_service.mark_range(db, date(2026, 11, 14), date(2026, 11, 17), "P", hr)
+        # 3 emps × (Fri, Mon) = 6; Sat? check weekly offs — typically Sunday only
+        assert filled["count"] >= 6
+        assert all(c["date"].weekday() != 6 for c in filled["applied"])
+        # Pre-mark one day, then only_unmarked should skip it
+        attendance_service.apply_changes(db, [{"employee_id": world["perm"].id, "date": date(2026, 11, 13),
+                                               "status": "A"}], hr)
+        out = attendance_service.mark_range(
+            db, date(2026, 11, 13), date(2026, 11, 13), "P", hr,
+            employee_ids=[world["perm"].id], only_unmarked=True)
+        assert out["count"] == 0
+
     def test_grid_auto_codes(self, world):
         db = world["db"]
         holiday_service.create(db, {"date": date(2026, 11, 9), "name": "Diwali"}, world["users"]["hr"])

@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { TooltipProvider } from "@/components/ui/misc";
 import { AttendanceGrid } from "./attendance-grid";
 import type { Grid } from "@/lib/types";
@@ -50,6 +50,14 @@ describe("AttendanceGrid", () => {
     expect(onSelect).toHaveBeenCalled();
     fireEvent.keyDown(screen.getByRole("grid"), { key: "a" });
     expect(onSave).toHaveBeenCalledWith([{ employee_id: 1, date: "2026-10-21", status: "A" }]);
+  });
+
+  it("opens the radial status picker on cell click and keeps it in the document", async () => {
+    setup();
+    fireEvent.click(cellAt("Asha Rao", "Wed 21 Oct"));
+    await waitFor(() => {
+      expect(screen.getByRole("menu", { name: "Set attendance status" })).toBeInTheDocument();
+    });
   });
 
   it("shift-click range apply skips Sundays and future-only rules", () => {

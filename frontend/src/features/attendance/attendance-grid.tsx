@@ -2,12 +2,12 @@ import * as React from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { format, parseISO } from "date-fns";
 import { Lock } from "lucide-react";
-import { Popover, PopoverAnchor, PopoverContent } from "@/components/ui/popover";
 import { PersonAvatar } from "@/components/ui/misc";
 import { KEY_TO_STATUS, STATUS, type StatusCode, statusMeta } from "@/lib/status";
 import { cn } from "@/lib/utils";
 import type { Grid, GridDay, GridRow, Cell } from "@/lib/types";
 import type { Change } from "./use-attendance";
+import { PickerOverlay } from "./picker-overlay";
 import { RadialPicker } from "./radial-picker";
 
 const ROW_H = 44;
@@ -33,8 +33,10 @@ export interface AttendanceGridHandle { selectToday: () => void }
 
 export const AttendanceGrid = React.forwardRef<AttendanceGridHandle, {
   grid: Grid; editable: boolean; onSave: (changes: Change[]) => void; onSelectEmployee: (row: GridRow) => void;
+  /** Open the employee cycle summary (e.g. mobile sheet). Defaults to onSelectEmployee. */
+  onOpenSummary?: (row: GridRow) => void;
   selectedEmployeeId: number | null;
-}>(function AttendanceGrid({ grid, editable, onSave, onSelectEmployee, selectedEmployeeId }, ref) {
+}>(function AttendanceGrid({ grid, editable, onSave, onSelectEmployee, onOpenSummary, selectedEmployeeId }, ref) {
   const rows = grid.employees;
   const days = grid.days;
   const todayIdx = days.findIndex((d) => d.is_today);
@@ -42,8 +44,9 @@ export const AttendanceGrid = React.forwardRef<AttendanceGridHandle, {
   const [anchor, setAnchor] = React.useState<Pos | null>(null);
   const [focus, setFocus] = React.useState<Pos | null>(null);
   const [pickerOpen, setPickerOpen] = React.useState(false);
+  const [pickerAnchor, setPickerAnchor] = React.useState<DOMRect | null>(null);
   const [flash, setFlash] = React.useState<Set<string>>(new Set());
-  const anchorEl = React.useRef<{ getBoundingClientRect: () => DOMRect }>({ getBoundingClientRect: () => new DOMRect() });
+  const closePicker = React.useCallback(() => setPickerOpen(false), []);
 
   const virt = useVirtualizer({ count: rows.length, getScrollElement: () => scrollRef.current, estimateSize: () => ROW_H,
     overscan: 10 });
@@ -116,9 +119,26 @@ export const AttendanceGrid = React.forwardRef<AttendanceGridHandle, {
   const openPicker = (p: Pos) => {
     const el = scrollRef.current?.querySelector<HTMLButtonElement>(`[data-cell="${p.r}:${p.c}"]`);
     if (!el) return;
-    anchorEl.current = { getBoundingClientRect: () => el.getBoundingClientRect() };
-    setPickerOpen(true);
+    // Scroll the cell into view first so the overlay can anchor on-screen.
+    el.scrollIntoView({ block: "nearest", inline: "nearest" });
+    requestAnimationFrame(() => {
+      setPickerAnchor(el.getBoundingClientRect());
+      setPickerOpen(true);
+    });
   };
+
+  // Dismiss the picker if the grid scrolls underneath it.
+  React.useEffect(() => {
+    const el = scrollRef.current;
+    if (!el || !pickerOpen) return;
+    const onScroll = () => setPickerOpen(false);
+    el.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("resize", onScroll);
+    return () => {
+      el.removeEventListener("scroll", onScroll);
+      window.removeEventListener("resize", onScroll);
+    };
+  }, [pickerOpen]);
 
   const onCellFocus = useStable((p: Pos) => {
     if (!focus || focus.r !== p.r || focus.c !== p.c) {
@@ -138,7 +158,10 @@ export const AttendanceGrid = React.forwardRef<AttendanceGridHandle, {
     const cell = rows[p.r].cells[p.c];
     if (canEditCell(cell, days[p.c])) openPicker(p);
   });
-  const onNameClick = useStable((r: number) => onSelectEmployee(rows[r]));
+  const onNameClick = useStable((r: number) => {
+    const row = rows[r];
+    (onOpenSummary ?? onSelectEmployee)(row);
+  });
   const entry: Pos = { r: 0, c: Math.max(0, todayIdx) };
 
   const onKeyDown = (e: React.KeyboardEvent) => {
@@ -277,21 +300,21 @@ export const AttendanceGrid = React.forwardRef<AttendanceGridHandle, {
         </div>
       )}
 
-      <Popover open={pickerOpen} onOpenChange={setPickerOpen}>
-        <PopoverAnchor virtualRef={anchorEl as React.RefObject<{ getBoundingClientRect: () => DOMRect }>} />
-        <PopoverContent bare side="bottom" align="center" sideOffset={-120}
-          onCloseAutoFocus={(e) => { e.preventDefault(); if (focus) focusCell(focus); }}>
-          {pickerCell && pickerDay && (
-            <RadialPicker current={pickerCell.auto ? null : pickerCell.s}
-              allowed={(code) => canEditCell(pickerCell, pickerDay, code)}
-              onClose={() => setPickerOpen(false)}
-              onPick={(code) => {
-                setPickerOpen(false);
-                apply(code, range);
-              }} />
-          )}
-        </PopoverContent>
-      </Popover>
+      <PickerOverlay open={pickerOpen && !!pickerCell && !!pickerDay} anchor={pickerAnchor} onClose={closePicker}>
+        {pickerCell && pickerDay && (
+          <RadialPicker current={pickerCell.auto ? null : pickerCell.s}
+            allowed={(code) => canEditCell(pickerCell, pickerDay, code)}
+            onClose={() => {
+              closePicker();
+              if (focus) focusCell(focus);
+            }}
+            onPick={(code) => {
+              closePicker();
+              apply(code, range);
+              if (focus) focusCell(focus);
+            }} />
+        )}
+      </PickerOverlay>
     </div>
   );
 });
