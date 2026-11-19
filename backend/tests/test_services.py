@@ -165,6 +165,21 @@ class TestAttendance:
             employee_ids=[world["perm"].id], only_unmarked=True)
         assert out["count"] == 0
 
+    def test_mark_range_half_day_and_clear(self, world):
+        db, hr, emp = world["db"], world["users"]["hr"], world["perm"]
+        hd = attendance_service.mark_range(
+            db, date(2026, 11, 10), date(2026, 11, 11), "HD", hr, employee_ids=[emp.id])
+        assert hd["count"] == 2
+        assert all(c["status"] == "HD" for c in hd["applied"])
+        cleared = attendance_service.mark_range(
+            db, date(2026, 11, 10), date(2026, 11, 11), None, hr, employee_ids=[emp.id])
+        assert cleared["count"] == 2
+        assert all(c["status"] is None for c in cleared["applied"])
+        assert db.scalars(select(Attendance).where(
+            Attendance.employee_id == emp.id,
+            Attendance.date >= date(2026, 11, 10),
+            Attendance.date <= date(2026, 11, 11))).all() == []
+
     def test_grid_auto_codes(self, world):
         db = world["db"]
         holiday_service.create(db, {"date": date(2026, 11, 9), "name": "Diwali"}, world["users"]["hr"])

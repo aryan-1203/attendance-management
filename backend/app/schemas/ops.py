@@ -143,7 +143,8 @@ class MarkAllIn(BaseModel):
 class MarkRangeIn(BaseModel):
     start_date: Date
     end_date: Date
-    status: str = Field(pattern="^(P|A)$")
+    # None / omitted = clear marks. Otherwise one of P,A,HD,L,WFH,OD,CO,WO,H.
+    status: str | None = Field(default=None, pattern="^(P|A|HD|L|WFH|OD|CO|WO|H)$")
     employee_ids: list[int] | None = None
     only_unmarked: bool = False
 

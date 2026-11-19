@@ -112,6 +112,12 @@ class TestFlows:
         rng = client.post("/api/attendance/mark-range", headers=h, json={
             "start_date": "2026-11-10", "end_date": "2026-11-12", "status": "A", "employee_ids": [e]}).json()
         assert rng["count"] == 3
+        hd = client.post("/api/attendance/mark-range", headers=h, json={
+            "start_date": "2026-11-10", "end_date": "2026-11-10", "status": "HD", "employee_ids": [e]}).json()
+        assert hd["count"] == 1 and hd["applied"][0]["status"] == "HD"
+        cleared = client.post("/api/attendance/mark-range", headers=h, json={
+            "start_date": "2026-11-10", "end_date": "2026-11-12", "status": None, "employee_ids": [e]}).json()
+        assert cleared["count"] >= 1
         pd = client.get("/api/reports/pay-days", headers=h).json()
         assert pd["totals"]["employees"] == 3
         for rep in ("pay-days.xlsx", "muster-roll.xlsx", "leave-register.xlsx", "lop-summary.xlsx", "pay-days.pdf"):

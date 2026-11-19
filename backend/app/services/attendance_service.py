@@ -142,21 +142,28 @@ def mark_all_present(db: Session, on: date, user, employee_ids: list[int] | None
     return result
 
 
-def mark_range(db: Session, start: date, end: date, status: str, user,
+def mark_range(db: Session, start: date, end: date, status: str | None, user,
                employee_ids: list[int] | None = None, only_unmarked: bool = False) -> dict[str, Any]:
-    """Apply P or A across a date range for all (or selected) employees.
+    """Apply a settable status (or clear) across a date range for all/selected employees.
 
-    Skips Sundays/holidays/NJ/EX, future dates, leave-sourced marks, and days already at `status`.
-    When only_unmarked is True, also skips any day that already has a mark.
+    Skips NJ/EX auto days, leave-sourced marks, and days already at the target status.
+    Auto weekly-offs/holidays are skipped when applying a different status (avoids accidental
+    overrides); clearing never creates marks on those days.
+    When only_unmarked is True, also skips any day that already has a mark (clear is a no-op).
+    Future dates are allowed only for FUTURE_OK statuses or when clearing.
     """
-    if status not in ("P", "A"):
-        raise ValidationFailed("Range mark supports only Present (P) or Absent (A)", code="invalid_status")
+    if status is not None and status not in SETTABLE:
+        raise ValidationFailed(
+            f"'{status}' is not a valid status. Use one of {', '.join(sorted(SETTABLE))} or clear",
+            code="invalid_status")
     if end < start:
         raise ValidationFailed("End date must be on or after start date", code="invalid_range")
     t = today()
-    if start > t:
+    allow_future = status is None or status in FUTURE_OK
+    if start > t and not allow_future:
         raise ValidationFailed("Cannot mark attendance for a future date range", code="future_date")
-    end = min(end, t)
+    if not allow_future:
+        end = min(end, t)
     if (end - start).days > 62:
         raise ValidationFailed("Date range cannot exceed 62 days", code="range_too_long")
 
@@ -178,9 +185,23 @@ def mark_range(db: Session, start: date, end: date, status: str, user,
     changes: list[dict[str, Any]] = []
     for e in emps:
         for d in daterange(start, end):
-            if auto_code(e, d, hol) is not None:
+            if d > t and not allow_future:
+                continue
+            auto = auto_code(e, d, hol)
+            if auto in ("NJ", "EX"):
                 continue
             row = existing.get((e.id, d))
+            if status is None:
+                # Clear: only remove existing non-leave marks
+                if not row or row.source == "leave":
+                    continue
+                if only_unmarked:
+                    continue
+                changes.append({"employee_id": e.id, "date": d, "status": None})
+                continue
+            # Leave calendar weekly-offs / public holidays alone when applying a status
+            if auto in ("WO", "H"):
+                continue
             if row:
                 if only_unmarked:
                     continue

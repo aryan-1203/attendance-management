@@ -2284,9 +2284,10 @@ export interface components {
             end_date: string;
             /**
              * Status
-             * @pattern ^(P|A)$
+             * None / omitted clears marks. Otherwise one of P, A, HD, L, WFH, OD, CO, WO, H.
+             * @pattern ^(P|A|HD|L|WFH|OD|CO|WO|H)$
              */
-            status: string;
+            status?: string | null;
             /** Employee Ids */
             employee_ids?: number[] | null;
             /**
