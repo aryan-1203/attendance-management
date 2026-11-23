@@ -7,7 +7,7 @@ input always yields the same output, which is what makes recalculation idempoten
 Rules implemented (see DECISIONS.md for the reasoning behind each default):
 * Eligible window = cycle ∩ [date_of_joining, exit_date].
 * Accrual: `accrual_per_cycle` credited at start/end of the eligible window (or daily pro-rata).
-  Partial windows (joiners/leavers) are pro-rated by eligible/cycle days and rounded per policy.
+  Partial windows (joiners/leavers) are pro-rated by eligible ÷ fixed 30 cycle days and rounded per policy.
 * Probation: of each accrual, `probation_usable_per_cycle` (pro-rated) is usable, the rest locked.
   Locked balance is released to usable on the confirmation date (PROBATION_RELEASE).
 * Deduction order for A / HD / L: usable → (comp-off if auto-apply) → LOP.
@@ -30,6 +30,8 @@ from app.engine.types import (NON_WORKING_CODES, PRESENT_CODES, Balances, CompOf
 HALF = Decimal("0.5")
 ONE = Decimal("1")
 FULL_LEAVE_CODES = frozenset({"A", "L", "CO"})
+# Payroll basis is always 30 days, even when the calendar window is 28–31 days.
+FIXED_CYCLE_DAYS = 30
 
 
 class _State:
@@ -94,7 +96,8 @@ def compute_cycle(inp: CycleInput) -> CycleResult:
     cs, ce = inp.cycle_start, inp.cycle_end
     if ce < cs:
         raise ValueError("cycle_end before cycle_start")
-    cycle_days = (ce - cs).days + 1
+    calendar_days = (ce - cs).days + 1
+    cycle_days = FIXED_CYCLE_DAYS
     ws = max(cs, emp.date_of_joining)
     we = min(ce, emp.exit_date) if emp.exit_date else ce
 
@@ -118,11 +121,13 @@ def compute_cycle(inp: CycleInput) -> CycleResult:
     summary.exited_in_cycle = bool(emp.exit_date and cs <= emp.exit_date <= ce)
 
     # ---- accrual amounts -------------------------------------------------------------------
+    # Full accrual when employed for the entire calendar window; otherwise pro-rate against 30.
     full = pol.accrual_per_cycle
-    if pol.accrual_timing == "daily":
-        total = q2(full * eligible / cycle_days)
-    elif eligible == cycle_days:
+    full_window = eligible == calendar_days
+    if full_window:
         total = full
+    elif pol.accrual_timing == "daily":
+        total = q2(full * eligible / cycle_days)
     else:
         total = round_days(full * eligible / cycle_days, pol.prorata_rounding)
 
@@ -140,7 +145,7 @@ def compute_cycle(inp: CycleInput) -> CycleResult:
     else:
         usable_part, locked_part = total, D0
     summary.accrued, summary.accrued_usable, summary.accrued_locked = total, usable_part, locked_part
-    accrual_note = "Monthly accrual" if eligible == cycle_days else f"Pro-rata accrual ({eligible}/{cycle_days} days)"
+    accrual_note = "Monthly accrual" if full_window else f"Pro-rata accrual ({eligible}/{cycle_days} days)"
 
     def credit_accrual(on: date) -> None:
         st.usable += usable_part

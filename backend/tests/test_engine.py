@@ -86,7 +86,7 @@ class TestMandatoryWorkedExamples:
                 (date(2026, 11, 5), "HD"))
         res = compute_cycle(CycleInput(CS, CE, perm(), opening=Balances(usable=D("1.0")), attendance=att))
         s = res.summary
-        assert s.cycle_days == 31 and s.eligible_days == 31
+        assert s.cycle_days == 30 and s.eligible_days == 31
         assert s.opening_usable == D("1.0") and s.accrued == D("1.5")
         assert s.paid_leave_used == D("2.5")
         assert s.lop_days == D("1.0")
@@ -139,7 +139,7 @@ class TestMandatoryWorkedExamples:
         res = compute_cycle(CycleInput(CS, CE, emp))
         s = res.summary
         assert s.eligible_days == 19
-        assert s.accrued == D("1.0")  # 1.5*19/31 = 0.919 -> 1.0
+        assert s.accrued == D("1.0")  # 1.5*19/30 = 0.95 -> 1.0
         assert s.payable_days == D("19")
         assert s.joined_in_cycle
         assert res.days[0].status == "NJ" and res.days[11].status == "NJ" and res.days[12].status == "WO"
@@ -169,7 +169,7 @@ class TestMandatoryWorkedExamples:
         assert res.summary.payable_days == 22
         assert res.days[-1].status == "EX"
         assert any("encashment" in r for r in res.remarks)
-        assert res.summary.accrued == D("1.0")  # 1.5*22/31 = 1.06 -> 1.0
+        assert res.summary.accrued == D("1.0")  # 1.5*22/30 = 1.1 -> 1.0
         assert res.summary.closing_usable == D("5.0")
 
     def test_7_retro_edit_engine_is_deterministic(self):
@@ -204,17 +204,18 @@ class TestAccrual:
 
     def test_daily_accrual(self):
         pol = Policy(accrual_timing="daily")
-        # absent on day 1: only 1.5/31 accrued so far -> mostly LOP
+        # absent on day 1: only 1.5/31 of the full accrual so far -> mostly LOP
         res = compute_cycle(CycleInput(CS, CE, perm(), policy=pol, attendance=m((CS, "A"))))
         assert res.summary.paid_leave_used == D("0.04")  # 1.5/31 = 0.0483 floored to 0.01 grid
         assert res.summary.lop_days == D("0.96")
         assert res.summary.closing_usable == D("1.46")
         assert res.summary.accrued == D("1.50")
+        assert res.summary.cycle_days == 30
 
     def test_prorata_rounding_modes(self):
         emp = perm(date_of_joining=date(2026, 11, 1))
         assert compute_cycle(CycleInput(CS, CE, emp, policy=Policy(prorata_rounding="floor_half"))).summary.accrued == D("0.5")
-        assert compute_cycle(CycleInput(CS, CE, emp, policy=Policy(prorata_rounding="none"))).summary.accrued == D("0.92")
+        assert compute_cycle(CycleInput(CS, CE, emp, policy=Policy(prorata_rounding="none"))).summary.accrued == D("0.95")
 
     def test_probation_cumulative_on_accumulates_usable(self):
         emp = prob(date_of_joining=date(2026, 8, 20))
@@ -263,7 +264,7 @@ class TestAccrual:
     def test_joined_and_exited_same_cycle(self):
         emp = perm(date_of_joining=date(2026, 10, 25), exit_date=date(2026, 11, 5))
         res = compute_cycle(CycleInput(CS, CE, emp))
-        assert res.summary.eligible_days == 12 and res.summary.accrued == D("0.5")  # 0.58 -> 0.5
+        assert res.summary.eligible_days == 12 and res.summary.accrued == D("0.5")  # 1.5*12/30 = 0.6 -> 0.5
 
 
 # ---------------------------------------------------------------------------------------------
