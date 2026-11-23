@@ -6,18 +6,21 @@ import { cn, fmtDate, fmtDays, num } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Tooltip } from "@/components/ui/misc";
-import { DataTable } from "@/components/shared/data-table";
+import { DataTable, stickyLeftOffset } from "@/components/shared/data-table";
 import { EmptyState } from "@/components/shared/empty-state";
 import { sumDec, type PayDaysTotals } from "./types";
 
 type Kind = "days" | "int";
 interface Col { id: keyof PayDaysRow; header: string; kind?: Kind; size?: number }
 
+const STICKY_COLS = 2;
+const STICKY_SIZES = [96, 190];
+
 const NUMERIC: Col[] = [
   { id: "cycle_days", header: "Cycle days", kind: "int" },
   { id: "eligible_days", header: "Eligible days", kind: "days" },
   { id: "weekly_offs", header: "Sundays / WO", kind: "days" },
-  { id: "holidays", header: "Holidays", kind: "days" },
+  { id: "holidays", header: "Public Holidays", kind: "days" },
   { id: "present_days", header: "Present", kind: "days" },
   { id: "half_days", header: "Half-days", kind: "days" },
   { id: "paid_leave_used", header: "Paid leave used", kind: "days" },
@@ -115,9 +118,11 @@ export function PayDaysTable({ rows, totals, loading }: { rows: PayDaysRow[]; to
           const id = (c.id ?? (c as { accessorKey?: string }).accessorKey) as keyof PayDaysRow;
           const col = NUMERIC.find((n) => n.id === id);
           const v = footTotals[id];
+          const pinned = i < STICKY_COLS;
           return (
             <td key={String(id)} className={cn("glass whitespace-nowrap border-t px-3 py-2.5 text-xs font-semibold",
-              i === 0 && "sticky left-0 z-30", col && "text-right tnum")}>
+              pinned && "sticky z-30", pinned && i === STICKY_COLS - 1 && "border-r", col && "text-right tnum")}
+              style={{ left: pinned ? stickyLeftOffset(STICKY_SIZES, i) : undefined }}>
               {i === 0 ? "Totals" : i === 1 ? <span className="font-normal text-muted-foreground tnum">{filtered.length} employees{isFiltered ? " (filtered)" : ""}</span>
                 : col && v !== undefined ? fmt(col.kind, v) : ""}
             </td>
@@ -152,7 +157,7 @@ export function PayDaysTable({ rows, totals, loading }: { rows: PayDaysRow[]; to
         </span>
       </div>
       <DataTable columns={columns} data={filtered} loading={loading} virtual={filtered.length > 60} maxHeight="68vh"
-        rowKey={(r) => r.employee_id} footer={footer}
+        stickyColumns={STICKY_COLS} rowKey={(r) => r.employee_id} footer={footer}
         empty={<EmptyState art={rows.length ? "search" : "people"} compact={!!rows.length}
           title={rows.length ? "No rows match" : "No employees in this cycle"}
           description={rows.length ? "Try another name or clear the filter." : "Nobody was employed during this cycle."} />} />

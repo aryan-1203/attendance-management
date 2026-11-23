@@ -8,14 +8,23 @@ import { ArrowDown, ArrowUp, ChevronsUpDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/misc";
 
-/** TanStack table with sticky header + first column, optional virtualization (500+ rows). */
+/** Left offset (px) for a sticky column, summing prior sticky column sizes. */
+export function stickyLeftOffset(sizes: number[], index: number): number {
+  let left = 0;
+  for (let i = 0; i < index; i++) left += sizes[i] ?? 0;
+  return left;
+}
+
+/** TanStack table with sticky header + leftmost columns, optional virtualization (500+ rows). */
 export function DataTable<T>({ columns, data, loading, onRowClick, empty, sorting, onSortingChange, manualSorting,
-  virtual = false, maxHeight = "70vh", rowKey, className, stickyFirst = true, footer }: {
+  virtual = false, maxHeight = "70vh", rowKey, className, stickyFirst = true, stickyColumns, footer }: {
   columns: ColumnDef<T, any>[]; data: T[]; loading?: boolean; onRowClick?: (row: T) => void;
   empty?: React.ReactNode; sorting?: SortingState; onSortingChange?: OnChangeFn<SortingState>;
   manualSorting?: boolean; virtual?: boolean; maxHeight?: string; rowKey?: (row: T) => string | number;
-  className?: string; stickyFirst?: boolean; footer?: React.ReactNode;
+  className?: string; stickyFirst?: boolean; /** How many leading columns stay pinned while scrolling horizontally. */
+  stickyColumns?: number; footer?: React.ReactNode;
 }) {
+  const stickyCount = stickyColumns ?? (stickyFirst ? 1 : 0);
   const [localSort, setLocalSort] = React.useState<SortingState>([]);
   const table = useReactTable({
     data, columns,
@@ -25,6 +34,7 @@ export function DataTable<T>({ columns, data, loading, onRowClick, empty, sortin
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: manualSorting ? undefined : getSortedRowModel(),
     getRowId: rowKey ? (r) => String(rowKey(r)) : undefined,
+    defaultColumn: { size: 150 },
   });
   const parentRef = React.useRef<HTMLDivElement>(null);
   const rows = table.getRowModel().rows;
@@ -34,6 +44,8 @@ export function DataTable<T>({ columns, data, loading, onRowClick, empty, sortin
   const padTop = items && items.length ? items[0].start : 0;
   const padBottom = items && items.length ? virt.getTotalSize() - items[items.length - 1].end : 0;
   const visible = items ? items.map((i) => rows[i.index]) : rows;
+  const leafHeaders = table.getHeaderGroups().at(-1)?.headers ?? [];
+  const stickySizes = leafHeaders.slice(0, stickyCount).map((h) => h.getSize());
 
   return (
     <div ref={parentRef} className={cn("relative overflow-auto rounded-xl border bg-card shadow-e1 scrollbar-thin", className)}
@@ -45,12 +57,18 @@ export function DataTable<T>({ columns, data, loading, onRowClick, empty, sortin
               {hg.headers.map((h, i) => {
                 const sortable = h.column.getCanSort();
                 const dir = h.column.getIsSorted();
+                const pinned = i < stickyCount;
                 return (
                   <th key={h.id} scope="col"
                     aria-sort={dir === "asc" ? "ascending" : dir === "desc" ? "descending" : undefined}
                     className={cn("glass whitespace-nowrap border-b px-3 py-2.5 text-left text-xs font-semibold text-muted-foreground",
-                      i === 0 && stickyFirst && "sticky left-0 z-30", (h.column.columnDef.meta as any)?.align === "right" && "text-right")}
-                    style={{ width: h.getSize() !== 150 ? h.getSize() : undefined }}>
+                      pinned && "sticky z-30",
+                      pinned && i === stickyCount - 1 && "border-r",
+                      (h.column.columnDef.meta as any)?.align === "right" && "text-right")}
+                    style={{
+                      width: h.getSize() !== 150 ? h.getSize() : undefined,
+                      left: pinned ? stickyLeftOffset(stickySizes, i) : undefined,
+                    }}>
                     {h.isPlaceholder ? null : sortable ? (
                       <button type="button" onClick={h.column.getToggleSortingHandler()}
                         className="inline-flex cursor-pointer items-center gap-1 rounded hover:text-foreground">
@@ -77,14 +95,19 @@ export function DataTable<T>({ columns, data, loading, onRowClick, empty, sortin
               onKeyDown={onRowClick ? (e) => { if (e.key === "Enter") onRowClick(row.original); } : undefined}
               tabIndex={onRowClick ? 0 : undefined}
               className={cn("group transition-colors", onRowClick && "cursor-pointer hover:bg-muted/60 focus-visible:bg-muted/60")}>
-              {row.getVisibleCells().map((cell, i) => (
-                <td key={cell.id}
-                  className={cn("border-b px-3 py-2.5 align-middle", i === 0 && stickyFirst &&
-                    "sticky left-0 z-10 bg-card group-hover:bg-muted/60",
-                    (cell.column.columnDef.meta as any)?.align === "right" && "text-right tnum")}>
-                  {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                </td>
-              ))}
+              {row.getVisibleCells().map((cell, i) => {
+                const pinned = i < stickyCount;
+                return (
+                  <td key={cell.id}
+                    className={cn("border-b px-3 py-2.5 align-middle",
+                      pinned && "sticky z-10 bg-card group-hover:bg-muted/60",
+                      pinned && i === stickyCount - 1 && "border-r",
+                      (cell.column.columnDef.meta as any)?.align === "right" && "text-right tnum")}
+                    style={{ left: pinned ? stickyLeftOffset(stickySizes, i) : undefined }}>
+                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                  </td>
+                );
+              })}
             </tr>
           ))}
           {!loading && padBottom > 0 && <tr style={{ height: padBottom }} />}

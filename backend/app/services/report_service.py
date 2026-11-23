@@ -26,7 +26,7 @@ PAY_COLUMNS = [
     xs.Col("code", "Emp Code"), xs.Col("full_name", "Name"), xs.Col("department", "Department"),
     xs.Col("date_of_joining", "DOJ", "date"), xs.Col("employment_type", "Employment Type"),
     xs.Col("cycle_days", "Cycle Days", "int"), xs.Col("eligible_days", "Eligible Days", "days", True),
-    xs.Col("weekly_offs", "Sundays / WO", "days", True), xs.Col("holidays", "Holidays", "days", True),
+    xs.Col("weekly_offs", "Sundays / WO", "days", True), xs.Col("holidays", "Public Holidays", "days", True),
     xs.Col("present_days", "Present", "days", True), xs.Col("half_days", "Half-days", "days", True),
     xs.Col("paid_leave_used", "Paid Leaves Used", "days", True), xs.Col("comp_off_used", "Comp-offs Used", "days", True),
     xs.Col("lop_days", "LOP Days", "days", True), xs.Col("payable_days", "Payable Days", "days", True),

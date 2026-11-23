@@ -102,7 +102,7 @@ def pay_days_pdf(db: Session, cycle, rows: list[dict], user) -> bytes:
     buf = io.BytesIO()
     doc = SimpleDocTemplate(buf, pagesize=landscape(A4), leftMargin=10 * mm, rightMargin=10 * mm, topMargin=10 * mm,
                             bottomMargin=10 * mm, title=f"Pay-Days {cycle.label}")
-    head = ["Code", "Name", "Department", "Eligible", "Sundays/WO", "Holidays", "Present", "Half-days", "Paid leave",
+    head = ["Code", "Name", "Department", "Eligible", "Sundays/WO", "Public Holidays", "Present", "Half-days", "Paid leave",
             "Comp-off", "LOP", "Payable", "Opening", "Accrued", "Closing", "Locked"]
     data = [head]
     for r in rows:
