@@ -86,12 +86,12 @@ class TestMandatoryWorkedExamples:
                 (date(2026, 11, 5), "HD"))
         res = compute_cycle(CycleInput(CS, CE, perm(), opening=Balances(usable=D("1.0")), attendance=att))
         s = res.summary
-        assert s.cycle_days == 30 and s.eligible_days == 31
+        assert s.cycle_days == 30 and s.eligible_days == 30
         assert s.opening_usable == D("1.0") and s.accrued == D("1.5")
         assert s.paid_leave_used == D("2.5")
         assert s.lop_days == D("1.0")
         assert s.closing_usable == D("0")
-        assert s.payable_days == D("30")
+        assert s.payable_days == D("29")
         assert s.weekly_offs == 4
         assert ledger_sum(res, "lop") == D("1.0")
 
@@ -103,7 +103,7 @@ class TestMandatoryWorkedExamples:
         assert s.accrued_usable == D("0.5") and s.accrued_locked == D("1.0")
         assert s.paid_leave_used == D("0.5")
         assert s.lop_days == D("1.5")
-        assert s.payable_days == D("29.5")
+        assert s.payable_days == D("28.5")
         assert s.closing_locked == D("1.0")  # untouched
         assert ledger_sum(res, "locked") == D("1.0")
 
@@ -154,12 +154,12 @@ class TestMandatoryWorkedExamples:
         res = compute_cycle(CycleInput(CS, CE, perm(), attendance=att, holidays=hol))
         assert res.summary.holidays == 1
         assert res.summary.lop_days == 0 and res.summary.paid_leave_used == 0
-        assert res.summary.payable_days == 31
+        assert res.summary.eligible_days == 30 and res.summary.payable_days == 30
 
     def test_5b_holiday_auto_filled_without_mark(self):
         res = compute_cycle(CycleInput(CS, CE, perm(), holidays={date(2026, 11, 9): "Diwali"}))
         assert [d.status for d in res.days if d.date == date(2026, 11, 9)] == ["H"]
-        assert res.summary.payable_days == 31 and res.summary.unmarked_days == 26
+        assert res.summary.eligible_days == 30 and res.summary.payable_days == 30 and res.summary.unmarked_days == 26
 
     def test_6_exit_mid_cycle(self):
         emp = perm(exit_date=date(2026, 11, 10))
@@ -278,7 +278,7 @@ class TestDeductions:
     def test_half_day_without_balance_is_half_lop(self):
         res = compute_cycle(CycleInput(CS, CE, perm(), policy=Policy(accrual_timing="end"),
                                        attendance=m((date(2026, 10, 21), "HD"))))
-        assert res.summary.lop_days == D("0.5") and res.summary.payable_days == D("30.5")
+        assert res.summary.lop_days == D("0.5") and res.summary.payable_days == D("29.5")
 
     def test_approved_leave_without_balance_becomes_lop(self):
         att = m((date(2026, 10, 21), "L"), (date(2026, 10, 22), "L"))

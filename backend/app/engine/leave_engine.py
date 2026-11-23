@@ -5,7 +5,8 @@ cycle into a deterministic list of ledger postings plus a pay-days summary. It i
 input always yields the same output, which is what makes recalculation idempotent.
 
 Rules implemented (see DECISIONS.md for the reasoning behind each default):
-* Eligible window = cycle ∩ [date_of_joining, exit_date].
+* Eligible window = cycle ∩ [date_of_joining, exit_date]. A full calendar window reports
+  eligible days as the fixed 30-day payroll basis (not 28–31 calendar days).
 * Accrual: `accrual_per_cycle` credited at start/end of the eligible window (or daily pro-rata).
   Partial windows (joiners/leavers) are pro-rated by eligible ÷ fixed 30 cycle days and rounded per policy.
 * Probation: of each accrual, `probation_usable_per_cycle` (pro-rated) is usable, the rest locked.
@@ -115,7 +116,10 @@ def compute_cycle(inp: CycleInput) -> CycleResult:
         summary.closing_usable, summary.closing_locked, summary.closing_comp_off = st.usable, st.locked, st.comp_off
         return CycleResult([], days, summary, Balances(st.usable, st.locked, st.lots), warnings, remarks)
 
-    eligible = (we - ws).days + 1
+    calendar_eligible = (we - ws).days + 1
+    full_window = calendar_eligible == calendar_days
+    # Full-cycle employees always count as 30 eligible days (same fixed payroll basis as cycle_days).
+    eligible = FIXED_CYCLE_DAYS if full_window else calendar_eligible
     summary.eligible_days = eligible
     summary.joined_in_cycle = cs <= emp.date_of_joining <= ce
     summary.exited_in_cycle = bool(emp.exit_date and cs <= emp.exit_date <= ce)
@@ -123,7 +127,6 @@ def compute_cycle(inp: CycleInput) -> CycleResult:
     # ---- accrual amounts -------------------------------------------------------------------
     # Full accrual when employed for the entire calendar window; otherwise pro-rate against 30.
     full = pol.accrual_per_cycle
-    full_window = eligible == calendar_days
     if full_window:
         total = full
     elif pol.accrual_timing == "daily":
@@ -195,8 +198,9 @@ def compute_cycle(inp: CycleInput) -> CycleResult:
             credit_accrual(day)
         if pol.accrual_timing == "daily":
             day_index += 1
-            to_date_u = floor2(usable_part * day_index / eligible)
-            to_date_l = floor2(locked_part * day_index / eligible)
+            # Progress against calendar employment days so a 31-day window still reaches full accrual.
+            to_date_u = floor2(usable_part * day_index / calendar_eligible)
+            to_date_l = floor2(locked_part * day_index / calendar_eligible)
             st.usable += to_date_u - accrued_u
             st.locked += to_date_l - accrued_l
             accrued_u, accrued_l = to_date_u, to_date_l

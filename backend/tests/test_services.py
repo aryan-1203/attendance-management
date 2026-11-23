@@ -38,7 +38,7 @@ class TestMandatoryOnDatabase:
         cyc = cycle_service.get_or_create_for(db, CS)
         r = row_for(db, cyc, emp)
         assert (r["paid_leave_used"], r["lop_days"], r["closing_usable"], r["payable_days"]) == (
-            D("2.5"), D("1.0"), D("0"), D("30"))
+            D("2.5"), D("1.0"), D("0"), D("29"))
         assert "net_payable_gross" not in r and "monthly_gross" not in r  # salary amounts are handled by Accounts
         assert recalc_service.balances_now(db, emp.id)["usable"] == 0
 
@@ -105,7 +105,7 @@ class TestMandatoryOnDatabase:
         holiday_service.create(db, {"date": date(2026, 11, 9), "name": "Diwali"}, hr)
         assert recalc_service.balances_now(db, emp.id)["usable"] == D("1.5")
         r = row_for(db, cycle_service.get_or_create_for(db, CS), emp)
-        assert r["holidays"] == 1 and r["payable_days"] == 31
+        assert r["holidays"] == 1 and r["payable_days"] == 30
 
 
 class TestAttendance:
@@ -196,7 +196,7 @@ class TestAttendance:
         db, hr, emp = world["db"], world["users"]["hr"], world["perm"]
         mark(db, hr, emp, [(date(2026, 10, 21), "A"), (date(2026, 10, 22), "A")])
         s = attendance_service.employee_cycle_summary(db, emp, cycle_service.get_or_create_for(db, CS))
-        assert s["lop_days"] == D("0.5") and s["projected_payable_days"] == D("30.5")
+        assert s["lop_days"] == D("0.5") and s["projected_payable_days"] == D("29.5")
         assert s["pending_days"] == 2  # 18, 19 Nov
 
 
