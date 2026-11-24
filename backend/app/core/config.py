@@ -39,7 +39,7 @@ class Settings(BaseSettings):
 
     # Collection Dashboard attendance sync (pull API)
     collection_api_base_url: str = "https://collection.prosparity.in"
-    collection_api_key: str = ""  # set COLLECTION_API_KEY in .env
+    collection_api_key: str = "0UInlx2TiNEaSR9oyVL9PtuaBCBJHbMBGCD5RNEVzs8"
 
     @property
     def cors_origin_list(self) -> list[str]:
