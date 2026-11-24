@@ -9,7 +9,14 @@ from sqlalchemy import select
 from app.core.config import settings
 from app.core.database import SessionLocal
 from app.models import Employee, JobRun
-from app.services import cycle_service, leave_service, notification_service, policy_service, recalc_service
+from app.services import (
+    collection_attendance_sync,
+    cycle_service,
+    leave_service,
+    notification_service,
+    policy_service,
+    recalc_service,
+)
 from app.utils.timeutil import today
 
 log = logging.getLogger("prosparity.scheduler")
@@ -74,6 +81,48 @@ def year_end() -> None:
         db.close()
 
 
+def collection_attendance() -> None:
+    """Pull Collection Dashboard marks for yesterday+today and fill blank HR cells."""
+    if not collection_attendance_sync.configured():
+        return
+    db = SessionLocal()
+    try:
+        t = today()
+        key = t.isoformat()
+        # Allow re-runs within the day for late Collection marks: use a soft key suffix by hour
+        # but only record one "ok" summary per calendar day for JobRun listing.
+        summary = collection_attendance_sync.sync_recent(db)
+        if summary is None:
+            return
+        db.add(JobRun(
+            job="collection_attendance",
+            run_key=key,
+            status="ok",
+            detail=(
+                f"applied={summary['applied']} fetched={summary['fetched']} "
+                f"unmatched={summary['skipped_unmatched_email']} existing={summary['skipped_existing']}"
+            )[:2000],
+            for_date=t,
+        ))
+        db.commit()
+    except Exception as exc:  # pragma: no cover
+        db.rollback()
+        log.exception("collection attendance sync failed")
+        try:
+            db.add(JobRun(
+                job="collection_attendance",
+                run_key=today().isoformat(),
+                status="error",
+                detail=str(exc)[:2000],
+                for_date=today(),
+            ))
+            db.commit()
+        except Exception:  # pragma: no cover
+            db.rollback()
+    finally:
+        db.close()
+
+
 def start() -> None:
     global _scheduler
     if _scheduler or not settings.enable_scheduler or settings.environment == "test":
@@ -83,6 +132,14 @@ def start() -> None:
                        misfire_grace_time=3600, coalesce=True)
     _scheduler.add_job(year_end, CronTrigger(hour=1, minute=0), id="year_end", replace_existing=True,
                        misfire_grace_time=3600, coalesce=True)
+    _scheduler.add_job(
+        collection_attendance,
+        CronTrigger(hour=11, minute=0),
+        id="collection_attendance",
+        replace_existing=True,
+        misfire_grace_time=3600,
+        coalesce=True,
+    )
     _scheduler.start()
     log.info("Scheduler started")
 

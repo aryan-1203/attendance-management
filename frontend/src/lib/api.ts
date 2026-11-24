@@ -128,6 +128,22 @@ export async function download(path: string, params?: Record<string, string | nu
   return { blob: await res.blob(), filename };
 }
 
+/** Authenticated JSON POST for endpoints not yet in the generated OpenAPI client. */
+export async function jsonPost<T>(path: string, body?: unknown): Promise<T> {
+  const req = new Request(`${BASE}${path}`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...(tokens.access ? { Authorization: `Bearer ${tokens.access}` } : {}),
+    },
+    body: body === undefined ? undefined : JSON.stringify(body),
+  });
+  const res = await authedFetch(req);
+  const data = await res.json().catch(() => undefined);
+  if (!res.ok) throw await toApiError(res, data);
+  return data as T;
+}
+
 /** Multipart upload (openapi-fetch's typing of UploadFile is awkward). */
 export async function upload<T>(path: string, file: File, params?: Record<string, string | boolean>): Promise<T> {
   const fd = new FormData();

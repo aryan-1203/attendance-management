@@ -37,6 +37,10 @@ class Settings(BaseSettings):
 
     enable_scheduler: bool = True
 
+    # Collection Dashboard attendance sync (pull API)
+    collection_api_base_url: str = "https://collection.prosparity.in"
+    collection_api_key: str = ""  # set COLLECTION_API_KEY in .env
+
     @property
     def cors_origin_list(self) -> list[str]:
         return [o.strip() for o in self.cors_origins.split(",") if o.strip()]

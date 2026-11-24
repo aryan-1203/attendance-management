@@ -1,9 +1,9 @@
 import * as React from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { CalendarRange, CheckCheck, Keyboard, Lock, Search, Upload } from "lucide-react";
+import { CalendarRange, CheckCheck, Keyboard, Lock, RefreshCw, Search, Upload } from "lucide-react";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
-import { client, unwrap } from "@/lib/api";
+import { client, errorMessage, jsonPost, unwrap } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { useCycle } from "@/lib/cycle";
 import { useDepartments } from "@/hooks/queries";
@@ -24,6 +24,18 @@ import { AttendanceGrid, LEGEND_CODES } from "@/features/attendance/attendance-g
 import { EmployeeSidePanel } from "@/features/attendance/side-panel";
 import { MarkRangeDialog } from "@/features/attendance/mark-range-dialog";
 import { useGrid, useSaveMarks, type GridFilters } from "@/features/attendance/use-attendance";
+
+type SyncCollectionOut = {
+  fetched: number;
+  matched: number;
+  applied: number;
+  skipped_existing: number;
+  skipped_unmatched_email: number;
+  skipped_locked: number;
+  skipped_other: number;
+  start_date: string;
+  end_date: string;
+};
 
 const ALL = "__all";
 
@@ -79,6 +91,33 @@ export default function AttendancePage() {
     },
   });
 
+  const syncCollection = useMutation({
+    mutationFn: () => {
+      if (!cycle) throw new Error("No cycle selected");
+      const end = cycle.end_date < today ? cycle.end_date : today;
+      return jsonPost<SyncCollectionOut>("/api/attendance/sync-collection", {
+        start_date: cycle.start_date,
+        end_date: end,
+      });
+    },
+    onSuccess: (res) => {
+      qc.invalidateQueries({ queryKey: ["grid"] });
+      qc.invalidateQueries({ queryKey: ["dashboard"] });
+      toast.success(
+        res.applied
+          ? `Synced ${res.applied} mark${res.applied === 1 ? "" : "s"} from Collection`
+          : "No new Collection marks to apply",
+        {
+          description:
+            `Fetched ${res.fetched} · unmatched email ${res.skipped_unmatched_email}` +
+            ` · already marked ${res.skipped_existing}` +
+            (res.skipped_locked ? ` · locked cycle ${res.skipped_locked}` : ""),
+        },
+      );
+    },
+    onError: (err) => toast.error(errorMessage(err)),
+  });
+
   const selectEmployee = React.useCallback((row: GridRow) => setSelected(row), []);
   const rows = grid.data?.employees;
   React.useEffect(() => {
@@ -97,7 +136,17 @@ export default function AttendancePage() {
           <CycleSwitcher className="sm:hidden" />
           <ShortcutsButton />
           {can("hr_admin") && (
-            <Button variant="outline" asChild><Link to="/import"><Upload />Import</Link></Button>
+            <>
+              <Button
+                variant="outline"
+                onClick={() => syncCollection.mutate()}
+                loading={syncCollection.isPending}
+                disabled={!cycle}
+              >
+                <RefreshCw />Sync from Collection
+              </Button>
+              <Button variant="outline" asChild><Link to="/import"><Upload />Import</Link></Button>
+            </>
           )}
           {editable && (<>
             <Button variant="outline" onClick={() => setRangeOpen(true)} disabled={!grid.data?.employees.length}>

@@ -149,6 +149,23 @@ class MarkRangeIn(BaseModel):
     only_unmarked: bool = False
 
 
+class SyncCollectionIn(BaseModel):
+    start_date: Date | None = None
+    end_date: Date | None = None
+
+
+class SyncCollectionOut(BaseModel):
+    fetched: int
+    matched: int
+    applied: int
+    skipped_existing: int
+    skipped_unmatched_email: int
+    skipped_locked: int
+    skipped_other: int
+    start_date: Date
+    end_date: Date
+
+
 class DayDetail(BaseModel):
     date: Date
     status: str

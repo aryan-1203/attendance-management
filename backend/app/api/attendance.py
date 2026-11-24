@@ -4,8 +4,17 @@ from sqlalchemy.orm import Session
 from app.api.deps import DB, CurrentUser, HROnly, Staff, resolve_employee
 from app.models import Employee, User
 from app.repositories import employee_repo
-from app.schemas.ops import BulkMarkIn, BulkMarkOut, CycleSummaryOut, GridOut, MarkAllIn, MarkRangeIn
-from app.services import access, attendance_service, cycle_service
+from app.schemas.ops import (
+    BulkMarkIn,
+    BulkMarkOut,
+    CycleSummaryOut,
+    GridOut,
+    MarkAllIn,
+    MarkRangeIn,
+    SyncCollectionIn,
+    SyncCollectionOut,
+)
+from app.services import access, attendance_service, collection_attendance_sync, cycle_service
 
 router = APIRouter(prefix="/attendance", tags=["attendance"])
 
@@ -50,5 +59,12 @@ def summary(employee_id: int | None = None, cycle_id: int | None = None, db: Ses
     emp = resolve_employee(db, user, employee_id)
     cyc = cycle_service.get(db, cycle_id) if cycle_id else cycle_service.current(db)
     out = attendance_service.employee_cycle_summary(db, emp, cyc)
+    db.commit()
+    return out
+
+
+@router.post("/sync-collection", response_model=SyncCollectionOut)
+def sync_collection(body: SyncCollectionIn, db: Session = DB, user: User = HROnly):
+    out = collection_attendance_sync.sync(db, body.start_date, body.end_date, user)
     db.commit()
     return out
