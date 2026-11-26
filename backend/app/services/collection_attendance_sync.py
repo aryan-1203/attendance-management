@@ -19,10 +19,17 @@ from app.utils.timeutil import today
 log = logging.getLogger("prosparity.collection_sync")
 
 SOURCE = "collection"
+# Collection integration API rejects ranges longer than this.
+MAX_CHUNK_DAYS = 62
 
 
 def configured() -> bool:
     return bool(settings.collection_api_base_url.strip() and settings.collection_api_key.strip())
+
+
+def sync_floor() -> date:
+    """Earliest date Collection marks may be written into HR."""
+    return settings.collection_sync_start_date
 
 
 def _fetch_collection_records(start: date, end: date) -> list[dict[str, Any]]:
@@ -89,10 +96,44 @@ def _cycle_open_cache(db: Session, dates: set[date]) -> dict[date, bool]:
     return cache
 
 
+def _empty_summary(start: date, end: date) -> dict[str, Any]:
+    return {
+        "fetched": 0,
+        "matched": 0,
+        "applied": 0,
+        "skipped_existing": 0,
+        "skipped_unmatched_email": 0,
+        "skipped_locked": 0,
+        "skipped_other": 0,
+        "start_date": start,
+        "end_date": end,
+    }
+
+
+def _merge_summaries(parts: list[dict[str, Any]], start: date, end: date) -> dict[str, Any]:
+    out = _empty_summary(start, end)
+    for part in parts:
+        for key in (
+            "fetched",
+            "matched",
+            "applied",
+            "skipped_existing",
+            "skipped_unmatched_email",
+            "skipped_locked",
+            "skipped_other",
+        ):
+            out[key] += int(part.get(key) or 0)
+    return out
+
+
 def sync(db: Session, start: date | None = None, end: date | None = None, user=None) -> dict[str, Any]:
     """
     Fetch Collection marks for [start, end] and insert Present only where HR has no mark.
     Never overwrites existing attendance rows.
+
+    When both dates are omitted, catch up from collection_sync_start_date through today
+    (chunked). Otherwise defaults each missing bound to today, then clamps start to the
+    Collection go-live floor.
     """
     if not configured():
         raise AppError(
@@ -102,15 +143,44 @@ def sync(db: Session, start: date | None = None, end: date | None = None, user=N
         )
 
     t = today()
-    start = start or t
-    end = end or t
+    floor = sync_floor()
+    if start is None and end is None:
+        start, end = floor, t
+    else:
+        start = start or t
+        end = end or t
+
+    if start < floor:
+        start = floor
     if end < start:
         raise ValidationFailed("end_date must be on or after start_date")
-    if (end - start).days > 62:
-        raise ValidationFailed("Date range cannot exceed 62 days")
+    if end > t:
+        end = t
+    if start > t:
+        return _empty_summary(start, end)
 
+    # Long catch-ups (e.g. go-live → today months later) are split for the Collection API.
+    if (end - start).days > MAX_CHUNK_DAYS:
+        return sync_range(db, start, end, user=user)
+
+    return _sync_chunk(db, start, end, user=user)
+
+
+def sync_range(db: Session, start: date, end: date, user=None) -> dict[str, Any]:
+    """Sync [start, end] in ≤62-day chunks and aggregate counts."""
+    parts: list[dict[str, Any]] = []
+    cursor = start
+    while cursor <= end:
+        chunk_end = min(cursor + timedelta(days=MAX_CHUNK_DAYS), end)
+        parts.append(_sync_chunk(db, cursor, chunk_end, user=user))
+        cursor = chunk_end + timedelta(days=1)
+    return _merge_summaries(parts, start, end)
+
+
+def _sync_chunk(db: Session, start: date, end: date, user=None) -> dict[str, Any]:
     records = _fetch_collection_records(start, end)
     by_email = _email_employee_map(db)
+    t = today()
 
     candidate_dates = set()
     parsed: list[tuple[Employee, date, bool]] = []
@@ -200,8 +270,13 @@ def sync(db: Session, start: date | None = None, end: date | None = None, user=N
     return summary
 
 
+def backfill(db: Session, user=None) -> dict[str, Any]:
+    """One-shot / catch-up: Collection go-live date through today."""
+    return sync(db, start=sync_floor(), end=today(), user=user)
+
+
 def sync_recent(db: Session, user=None) -> dict[str, Any] | None:
-    """Daily job: yesterday + today. No-op when not configured."""
+    """Daily job: yesterday + today (clamped to go-live). No-op when not configured."""
     if not configured():
         return None
     t = today()

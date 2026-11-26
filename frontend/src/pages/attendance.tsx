@@ -94,9 +94,12 @@ export default function AttendancePage() {
   const syncCollection = useMutation({
     mutationFn: () => {
       if (!cycle) throw new Error("No cycle selected");
+      // Collection go-live is 19 Nov 2026; backend also clamps. Sync cycle ∩ [go-live, today].
+      const collectionStart = "2026-11-19";
+      const start = cycle.start_date < collectionStart ? collectionStart : cycle.start_date;
       const end = cycle.end_date < today ? cycle.end_date : today;
       return jsonPost<SyncCollectionOut>("/api/attendance/sync-collection", {
-        start_date: cycle.start_date,
+        start_date: start,
         end_date: end,
       });
     },

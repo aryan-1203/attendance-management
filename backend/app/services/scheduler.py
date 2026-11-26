@@ -4,6 +4,7 @@ from datetime import timedelta
 
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
+from apscheduler.triggers.date import DateTrigger
 from sqlalchemy import select
 
 from app.core.config import settings
@@ -81,16 +82,65 @@ def year_end() -> None:
         db.close()
 
 
-def collection_attendance() -> None:
-    """Pull Collection Dashboard marks for yesterday+today and fill blank HR cells."""
+def _collection_summary_detail(summary: dict) -> str:
+    return (
+        f"applied={summary['applied']} fetched={summary['fetched']} "
+        f"unmatched={summary['skipped_unmatched_email']} existing={summary['skipped_existing']}"
+        + (f" locked={summary['skipped_locked']}" if summary.get("skipped_locked") else "")
+    )[:2000]
+
+
+def collection_attendance_backfill() -> None:
+    """
+    One-time catch-up: Collection go-live (default 19 Nov 2026) through today.
+    Idempotent — skips cells that already have an HR mark; recorded once in job_runs.
+    """
     if not collection_attendance_sync.configured():
         return
     db = SessionLocal()
     try:
+        floor = collection_attendance_sync.sync_floor()
+        key = floor.isoformat()
+        if not _once(db, "collection_attendance_backfill", key):
+            return
+        summary = collection_attendance_sync.backfill(db)
+        db.add(JobRun(
+            job="collection_attendance_backfill",
+            run_key=key,
+            status="ok",
+            detail=_collection_summary_detail(summary),
+            for_date=today(),
+        ))
+        db.commit()
+        log.info("collection attendance backfill complete: %s", summary)
+    except Exception as exc:  # pragma: no cover
+        db.rollback()
+        log.exception("collection attendance backfill failed")
+        try:
+            db.add(JobRun(
+                job="collection_attendance_backfill",
+                run_key=collection_attendance_sync.sync_floor().isoformat(),
+                status="error",
+                detail=str(exc)[:2000],
+                for_date=today(),
+            ))
+            db.commit()
+        except Exception:  # pragma: no cover
+            db.rollback()
+    finally:
+        db.close()
+
+
+def collection_attendance() -> None:
+    """Daily live sync: pull Collection marks for yesterday+today and fill blank HR cells."""
+    if not collection_attendance_sync.configured():
+        return
+    # Ensure historical catch-up has run at least once (e.g. first deploy after go-live).
+    collection_attendance_backfill()
+    db = SessionLocal()
+    try:
         t = today()
         key = t.isoformat()
-        # Allow re-runs within the day for late Collection marks: use a soft key suffix by hour
-        # but only record one "ok" summary per calendar day for JobRun listing.
         summary = collection_attendance_sync.sync_recent(db)
         if summary is None:
             return
@@ -98,10 +148,7 @@ def collection_attendance() -> None:
             job="collection_attendance",
             run_key=key,
             status="ok",
-            detail=(
-                f"applied={summary['applied']} fetched={summary['fetched']} "
-                f"unmatched={summary['skipped_unmatched_email']} existing={summary['skipped_existing']}"
-            )[:2000],
+            detail=_collection_summary_detail(summary),
             for_date=t,
         ))
         db.commit()
@@ -136,6 +183,15 @@ def start() -> None:
         collection_attendance,
         CronTrigger(hour=11, minute=0),
         id="collection_attendance",
+        replace_existing=True,
+        misfire_grace_time=3600,
+        coalesce=True,
+    )
+    # On boot: backfill Nov 19 → today once, then keep the daily 11:00 job for live sync.
+    _scheduler.add_job(
+        collection_attendance_backfill,
+        trigger=DateTrigger(),
+        id="collection_attendance_backfill_boot",
         replace_existing=True,
         misfire_grace_time=3600,
         coalesce=True,

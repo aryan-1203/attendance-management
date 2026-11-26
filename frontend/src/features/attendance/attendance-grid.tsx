@@ -361,7 +361,7 @@ const GridRowView = React.memo(function GridRowView({ row, r, top, days, selCols
             {!meta && ed && !day.is_future && (
               <span className="size-1.5 rounded-full bg-warning/70" aria-hidden title="Not marked" />
             )}
-            {cell.late && <span className="absolute right-1 top-1 size-1.5 rounded-full bg-status-hd" aria-hidden title="Late" />}
+            {cell.late && <span className="absolute right-1 top-1 size-1.5 rounded-full bg-destructive" aria-hidden title="Late" />}
             {cell.src === "leave" && <span className="absolute bottom-1 left-1/2 h-0.5 w-3 -translate-x-1/2 rounded bg-status-l" aria-hidden />}
             {isFocus && <span className="pointer-events-none absolute inset-0.5 rounded-md ring-2 ring-ring" aria-hidden />}
           </button>

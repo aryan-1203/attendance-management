@@ -1,4 +1,5 @@
 """Application configuration, loaded from environment variables / .env."""
+from datetime import date
 from functools import lru_cache
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -40,6 +41,8 @@ class Settings(BaseSettings):
     # Collection Dashboard attendance sync (pull API)
     collection_api_base_url: str = "https://collection.prosparity.in"
     collection_api_key: str = "0UInlx2TiNEaSR9oyVL9PtuaBCBJHbMBGCD5RNEVzs8"
+    # First day Collection marks are trusted for HR; history before this is never pulled.
+    collection_sync_start_date: date = date(2026, 11, 19)
 
     @property
     def cors_origin_list(self) -> list[str]:
