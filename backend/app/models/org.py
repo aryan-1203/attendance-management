@@ -38,6 +38,9 @@ class Employee(TimestampMixin, Base):
     department_id: Mapped[int | None] = mapped_column(ForeignKey("departments.id", ondelete="SET NULL"), nullable=True)
     designation_id: Mapped[int | None] = mapped_column(ForeignKey("designations.id", ondelete="SET NULL"), nullable=True)
     manager_id: Mapped[int | None] = mapped_column(ForeignKey("employees.id", ondelete="SET NULL"), nullable=True, index=True)
+    function_manager_id: Mapped[int | None] = mapped_column(
+        ForeignKey("employees.id", ondelete="SET NULL"), nullable=True, index=True
+    )
     date_of_joining: Mapped[date] = mapped_column(Date)
     probation_end_date: Mapped[date | None] = mapped_column(Date, nullable=True)
     confirmation_date: Mapped[date | None] = mapped_column(Date, nullable=True)
@@ -53,7 +56,12 @@ class Employee(TimestampMixin, Base):
 
     department: Mapped[Department | None] = relationship(lazy="joined")
     designation: Mapped[Designation | None] = relationship(lazy="joined")
-    manager: Mapped["Employee | None"] = relationship(remote_side="Employee.id", lazy="select")
+    manager: Mapped["Employee | None"] = relationship(
+        remote_side="Employee.id", lazy="select", foreign_keys=[manager_id],
+    )
+    function_manager: Mapped["Employee | None"] = relationship(
+        remote_side="Employee.id", lazy="select", foreign_keys=[function_manager_id],
+    )
 
     @property
     def weekly_off_days(self) -> list[int]:

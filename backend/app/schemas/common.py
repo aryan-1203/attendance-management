@@ -83,6 +83,7 @@ class EmployeeOut(ORM):
     designation_id: int | None
     designation: Lookup | None
     manager_id: int | None
+    function_manager_id: int | None = None
     date_of_joining: date
     probation_end_date: date | None
     confirmation_date: date | None
@@ -104,6 +105,7 @@ class EmployeeIn(BaseModel):
     department_id: int | None = None
     designation_id: int | None = None
     manager_id: int | None = None
+    function_manager_id: int | None = None
     date_of_joining: date
     probation_end_date: date | None = None
     confirmation_date: date | None = None
@@ -123,6 +125,7 @@ class EmployeeUpdate(BaseModel):
     department_id: int | None = None
     designation_id: int | None = None
     manager_id: int | None = None
+    function_manager_id: int | None = None
     date_of_joining: date | None = None
     probation_end_date: date | None = None
     confirmation_date: date | None = None

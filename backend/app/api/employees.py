@@ -207,10 +207,15 @@ def profile(emp_id: int, db: Session = DB, user: User = CurrentUser):
     cyc = cycle_service.current(db)
     summary = attendance_service.employee_cycle_summary(db, emp, cyc)
     manager = employee_service.get(db, emp.manager_id) if emp.manager_id else None
+    function_manager = employee_service.get(db, emp.function_manager_id) if emp.function_manager_id else None
     db.commit()  # cycle creation
     return {
         "employee": EmployeeOut.model_validate(emp).model_dump(),
         "manager": {"id": manager.id, "code": manager.code, "full_name": manager.full_name} if manager else None,
+        "function_manager": (
+            {"id": function_manager.id, "code": function_manager.code, "full_name": function_manager.full_name}
+            if function_manager else None
+        ),
         "balances": employee_service.balances(db, emp.id),
         "current_cycle": {"id": cyc.id, "label": cyc.label},
         "summary": summary,
@@ -278,9 +283,12 @@ def status_codes():
 
 @meta.get("/meta/managers", response_model=list[dict], tags=["meta"])
 def managers(db: Session = DB, _=Staff):
-    from app.models import Role
-    rows = db.execute(select(Employee.id, Employee.code, Employee.full_name).join(User, User.employee_id == Employee.id)
-                      .join(Role).where(Role.name.in_(("manager", "hr_admin")), Employee.deleted_at.is_(None))).all()
+    # Any active employee can be selected as reporting / function manager.
+    rows = db.execute(
+        select(Employee.id, Employee.code, Employee.full_name)
+        .where(Employee.deleted_at.is_(None), Employee.status == "active")
+        .order_by(Employee.full_name)
+    ).all()
     return [{"id": r.id, "code": r.code, "full_name": r.full_name} for r in rows]
 
 

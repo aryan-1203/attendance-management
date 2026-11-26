@@ -154,9 +154,13 @@ export default function EmployeeProfilePage() {
             <Fact icon={<Hourglass />} label="Probation ends" value={fmtDate(emp.probation_end_date)} />
             <Fact icon={<UserCheck />} label="Confirmed" value={emp.confirmation_date ? fmtDate(emp.confirmation_date) : onProbation ? "On probation" : "—"} />
             <Fact icon={<CalendarX2 />} label="Exit" value={fmtDate(emp.exit_date)} />
-            <Fact icon={<Users />} label="Manager" value={data?.manager ? (
+            <Fact icon={<Users />} label="Reporting manager" value={data?.manager ? (
               can("hr_admin", "accounts") ? <Link className="text-primary hover:underline" to={`/employees/${data.manager.id}`}>{data.manager.full_name}</Link>
                 : data.manager.full_name
+            ) : data ? "—" : <Skeleton className="h-4 w-24" />} />
+            <Fact icon={<Users />} label="Function manager" value={data?.function_manager ? (
+              can("hr_admin", "accounts") ? <Link className="text-primary hover:underline" to={`/employees/${data.function_manager.id}`}>{data.function_manager.full_name}</Link>
+                : data.function_manager.full_name
             ) : data ? "—" : <Skeleton className="h-4 w-24" />} />
             <Fact icon={<Coffee />} label="Weekly off" value={weeklyOffLabel(emp.weekly_off)} />
             <Fact icon={<Mail />} label="Email" value={emp.email ? <a className="break-all hover:underline" href={`mailto:${emp.email}`}>{emp.email}</a> : "—"} />

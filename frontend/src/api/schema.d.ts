@@ -1711,6 +1711,8 @@ export interface components {
             designation_id?: number | null;
             /** Manager Id */
             manager_id?: number | null;
+            /** Function Manager Id */
+            function_manager_id?: number | null;
             /**
              * Date Of Joining
              * Format: date
@@ -1759,6 +1761,8 @@ export interface components {
             designation: components["schemas"]["Lookup"] | null;
             /** Manager Id */
             manager_id: number | null;
+            /** Function Manager Id */
+            function_manager_id: number | null;
             /**
              * Date Of Joining
              * Format: date
@@ -1804,6 +1808,8 @@ export interface components {
             designation_id?: number | null;
             /** Manager Id */
             manager_id?: number | null;
+            /** Function Manager Id */
+            function_manager_id?: number | null;
             /** Date Of Joining */
             date_of_joining?: string | null;
             /** Probation End Date */

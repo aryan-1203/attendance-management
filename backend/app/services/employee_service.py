@@ -31,6 +31,7 @@ def get(db: Session, emp_id: int) -> Employee:
 
 def snapshot(emp: Employee) -> dict[str, Any]:
     return {c: getattr(emp, c) for c in ("code", "full_name", "department_id", "designation_id", "manager_id",
+                                          "function_manager_id",
                                           "date_of_joining", "probation_end_date", "confirmation_date", "exit_date",
                                           "employment_type", "weekly_off", "email", "phone",
                                           "status", "date_of_birth")}
@@ -55,9 +56,10 @@ def _validate(db: Session, data: dict[str, Any], emp: Employee | None = None) ->
         parts = [p for p in str(wo).split(",") if p.strip()]
         if not all(p.strip().isdigit() and 0 <= int(p) <= 6 for p in parts):
             raise ValidationFailed("Weekly off must be weekday numbers 0 (Mon) to 6 (Sun)")
-    mgr = data.get("manager_id")
-    if mgr and emp and mgr == emp.id:
-        raise ValidationFailed("An employee cannot be their own manager")
+    for field, label in (("manager_id", "manager"), ("function_manager_id", "function manager")):
+        mgr = data.get(field)
+        if mgr and emp and mgr == emp.id:
+            raise ValidationFailed(f"An employee cannot be their own {label}")
 
 
 def create(db: Session, data: dict[str, Any], user) -> Employee:

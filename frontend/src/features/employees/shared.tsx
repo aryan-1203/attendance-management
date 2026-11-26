@@ -102,6 +102,7 @@ export interface ProfileSummary {
 export interface Profile {
   employee: Employee;
   manager: ManagerOption | null;
+  function_manager: ManagerOption | null;
   balances: { usable: string; locked: string; comp_off: string; lop?: string | null };
   current_cycle: { id: number; label: string };
   summary: ProfileSummary;

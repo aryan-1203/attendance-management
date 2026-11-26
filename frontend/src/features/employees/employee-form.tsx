@@ -29,6 +29,7 @@ const schema = z.object({
   department_id: z.string(),
   designation_id: z.string(),
   manager_id: z.string(),
+  function_manager_id: z.string(),
   date_of_joining: z.string().min(1, "Date of joining is required"),
   probation_end_date: optionalDate,
   confirmation_date: optionalDate,
@@ -62,6 +63,7 @@ function toValues(e?: Employee): EmployeeFormValues {
     department_id: e?.department_id ? String(e.department_id) : NONE,
     designation_id: e?.designation_id ? String(e.designation_id) : NONE,
     manager_id: e?.manager_id ? String(e.manager_id) : NONE,
+    function_manager_id: e?.function_manager_id ? String(e.function_manager_id) : NONE,
     date_of_joining: e?.date_of_joining ?? "", probation_end_date: e?.probation_end_date ?? "",
     confirmation_date: e?.confirmation_date ?? "", exit_date: e?.exit_date ?? "", exit_reason: e?.exit_reason ?? "",
     employment_type: (EMPLOYMENT_TYPES.some((t) => t.value === e?.employment_type) ? e!.employment_type : "probation") as
@@ -76,7 +78,8 @@ function toPayload(v: EmployeeFormValues) {
   const opt = (s: string) => (s.trim() === "" ? null : s.trim());
   return {
     code: v.code.trim(), full_name: v.full_name.trim(), photo_url: opt(v.photo_url),
-    department_id: id(v.department_id), designation_id: id(v.designation_id), manager_id: id(v.manager_id),
+    department_id: id(v.department_id), designation_id: id(v.designation_id),
+    manager_id: id(v.manager_id), function_manager_id: id(v.function_manager_id),
     date_of_joining: v.date_of_joining, probation_end_date: opt(v.probation_end_date),
     confirmation_date: opt(v.confirmation_date), exit_date: opt(v.exit_date), exit_reason: opt(v.exit_reason),
     employment_type: v.employment_type,
@@ -169,7 +172,7 @@ export function EmployeeFormSheet({ open, onOpenChange, employee, onSaved }: {
     "aria-invalid": !!errors[k] || undefined, "aria-describedby": errors[k] ? `emp-${k}-error` : undefined,
   });
 
-  const selectField = (k: "department_id" | "designation_id" | "manager_id", label: string,
+  const selectField = (k: "department_id" | "designation_id" | "manager_id" | "function_manager_id", label: string,
     options: { value: string; label: string }[], loading: boolean) => (
     <Field label={label} htmlFor={`emp-${k}`} error={err(k)}>
       <Controller control={control} name={k} render={({ field }) => (
@@ -224,6 +227,8 @@ export function EmployeeFormSheet({ open, onOpenChange, employee, onSaved }: {
               {selectField("designation_id", "Designation",
                 (desigs.data ?? []).map((d) => ({ value: String(d.id), label: d.name })), desigs.isLoading)}
               {selectField("manager_id", "Reporting manager",
+                mgrs.map((m) => ({ value: String(m.id), label: `${m.full_name} · ${m.code}` })), managers.isLoading)}
+              {selectField("function_manager_id", "Function manager",
                 mgrs.map((m) => ({ value: String(m.id), label: `${m.full_name} · ${m.code}` })), managers.isLoading)}
               <Field label="Employment type" htmlFor="emp-employment_type" error={err("employment_type")} required>
                 <Controller control={control} name="employment_type" render={({ field }) => (
